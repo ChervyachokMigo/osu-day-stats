@@ -11,61 +11,45 @@ const HTTP_PORT = 10577;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+const webserver_dir = 'web';
+
 const osu_login = process.env.osu_login;
 const osu_password = process.env.osu_password;
 
-try {
-    fs.opendirSync(path.join(__dirname, 'beatmaps'));
-} catch (e){
-    if (e.code === 'ENOENT') {
-        try{
-            fs.mkdirSync(path.join(__dirname, 'beatmaps'));
-        } catch (e2) {
-            throw new Error(e2);
+const combo_is_fc = 0.99; //%
+const score_mode = 'osu';
+const length_significance = 0.1; //0-1
+const efficiency_multiplier = 5;
+
+const check_dir = (dirname) => {
+    try {
+        fs.opendirSync(path.join(__dirname, dirname));
+    } catch (e){
+        if (e.code === 'ENOENT') {
+            try{
+                fs.mkdirSync(path.join(__dirname, dirname));
+            } catch (e2) {
+                throw new Error(e2);
+            }
+        } else {
+            throw new Error(e);
         }
-    } else {
-        throw new Error(e);
     }
 }
 
-try {
-    fs.opendirSync(path.join(__dirname, 'scores'));
-} catch (e){
-    if (e.code === 'ENOENT') {
-        try{
-            fs.mkdirSync(path.join(__dirname, 'scores'));
-        } catch (e2) {
-            throw new Error(e2);
-        }
-    } else {
-        throw new Error(e);
-    }
-}
+check_dir('beatmaps');
+check_dir('scores');
 
 const check_credentials = ()=>{
     if (osu_login === undefined || osu_password === undefined) return false;
     return true;
 }
 
-/*const is_login_expired = ()=>{
-    try {
-        console.log('checking login date');
-        const token_info = fs.readFileSync(path.join(__dirname, 'login_token.json'));
-        const now_seconds = Math.trunc(new Date().getTime()/1000);
-        if (token_info.enddate >= now_seconds){
-            return true;
-        }
-        
-
-        console.log('you have access token. ready to requests')
-        return false;
-    } catch (e){
-        if (e.code === 'ENOENT') return true;
-
-        console.error(e);
-        return true;
-    }
-}*/
+const PathListener = (webserver_descriptor, filepath, filename) =>{
+    webserver_descriptor.get(filepath, (req, res) => {
+        res.sendFile(path.join(__dirname, webserver_dir, filename));
+    });
+}
 
 const check_login = async()=>{
     //access_token
@@ -76,9 +60,6 @@ const check_login = async()=>{
         if (token_info && token_info.access_token === undefined){
             throw new Error('Login failed. Recheck your credentials');
         }
-        //const now_seconds = Math.trunc(new Date().getTime()/1000);
-        //token_info.enddate = now_seconds + token_info.expires_in;
-        //fs.writeFileSync(path.join(__dirname,'login_token.json'), JSON.stringify(token_info));
         return true;
     } catch (e){
         throw new Error(e);
@@ -126,7 +107,7 @@ const get_beatmap_info = async (beatmap_id) => {
 
 const get_recent_scores = async (user_id) => {
 
-    var user_scores = await v2.user.scores.category(user_id, 'recent', {mode: 'osu'});
+    var user_scores = await v2.user.scores.category(user_id, 'recent', {mode: score_mode});
 
     var user_fcs = [];
 
@@ -150,10 +131,10 @@ const get_recent_scores = async (user_id) => {
         let user_combo = user_score.max_combo;
         let user_accuracy = user_score.accuracy;
 
-        let combo_allowed = beatmap_max_combo * 0.99;
+        let combo_allowed = beatmap_max_combo * combo_is_fc;
 
-        if (user_combo > combo_allowed){
-            let fc_efficiency = user_accuracy * (user_combo / beatmap_max_combo) * ( ((stars * ((beatmap_length / 120) * 0.1) + stars * 0.9)) / 5 );
+        if (user_combo >= combo_allowed){
+            let fc_efficiency = user_accuracy * (user_combo / beatmap_max_combo) * ( ((stars * ((beatmap_length / 120) * length_significance) + stars * (1-length_significance))) / efficiency_multiplier );
             let user_fc_info = {
                 beatmap_title: `${beatmap_info.beatmapset.artist} - ${beatmap_info.beatmapset.title} [${beatmap_info.version}]`,
                 beatmap_preview: beatmap_info.beatmapset.preview_url,
@@ -248,29 +229,12 @@ const main = (async () => {
         }
     });
     
-    app.get('/', (req, res) => {
-        res.sendFile(path.join(__dirname, 'web', 'index.html'));
-    });
-    
-    app.get('/jquery.min.js', (req, res) => {
-        res.sendFile(path.join(__dirname, 'web', 'jquery.min.js'));
-    });
-    
-    app.get('/styles.css', (req, res) => {
-        res.sendFile(path.join(__dirname, 'web', 'styles.css'));
-    });
-    
-    app.get('/favicon.ico', (req, res) => {
-        res.sendFile(path.join(__dirname, 'web', 'favicon.png'));
-    });
-
-    app.get('/play.png', (req, res) => {
-        res.sendFile(path.join(__dirname, 'web', 'play.png'));
-    });
-
-    app.get('/pause.png', (req, res) => {
-        res.sendFile(path.join(__dirname, 'web', 'pause.png'));
-    });
+    PathListener(app, '/', 'index.html');
+    PathListener(app, '/jquery.min.js', 'jquery.min.js');
+    PathListener(app, '/styles.css', 'styles.css');
+    PathListener(app, '/favicon.ico', 'favicon.png');
+    PathListener(app, '/play.png', 'play.png');
+    PathListener(app, '/pause.png', 'pause.png');
 
     app.post('/load_last_recent_scores', async (req, res) => {
         var last_recent_scores = await get_recent_scores(user_id);
