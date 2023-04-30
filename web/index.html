@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+
+    <script src="jquery.min.js"></script>
+
+    <script>
+    $(document).ready(function(){
+        $.post('/load_last_recent_scores', (all_scores_json)=> {
+            scores_data = JSON.parse(all_scores_json);
+            scores = scores_data.user_fcs;
+            daily = scores_data.daily_stats;
+            yesterday_daily = scores_data.yesterday_daily?scores_data.yesterday_daily:undefined;
+            $('.daily').empty();
+            $('.daily').append(`
+            <h2>Daily stats</h2>
+            <div class="topic">
+                <div class="daily_headers">
+                    <div class="headers_efficiency"><B>Efficiency:</B></div>
+                    <div class="headers_stars"><B>Average stars:</B></div>
+                    <div class="headers_accuracy"><B>Average accuracy:</B></div>
+                    <div class="headers_combo"><B>Average combo:</B></div>
+                    <div class="headers_length"><B>Average length:</B></div>
+                </div>
+                <div class="today_daily">
+                    <div class="daily_efficiency">${daily.fc_efficiency}</div>
+                    <div class="daily_stars">${daily.avg_stars}★</div>
+                    <div class="daily_accuracy">${daily.avg_accuracy}%</div>
+                    <div class="daily_combo">${Number(daily.avg_combo).toFixed(0)}x</div>
+                    <div class="daily_length">${format_seconds(daily.avg_length)}</div>
+                </div>
+                <div class="yesterday_daily">
+                    <div class="daily_efficiency">${yesterday_daily? ''+ make_sign((Number(daily.fc_efficiency) - Number(yesterday_daily.fc_efficiency)).toFixed(2)):''}</div>
+                    <div class="daily_stars">${yesterday_daily? ''+ make_sign((Number(daily.avg_stars) - Number(yesterday_daily.avg_stars)).toFixed(2)) + '★':''}</div>
+                    <div class="daily_accuracy">${yesterday_daily? ''+ make_sign((Number(daily.avg_accuracy) - Number(yesterday_daily.avg_accuracy)).toFixed(2)) + '%':''}</div>
+                    <div class="daily_combo">${yesterday_daily? ''+ make_sign(Number((Number(daily.avg_combo) - Number(yesterday_daily.avg_combo))).toFixed(0)) + 'x':''}</div>
+                    <div class="daily_length">${yesterday_daily? make_sign(Number(daily.avg_length) - Number(yesterday_daily.avg_length), true) + ''+ format_seconds((Number(daily.avg_length) - Number(yesterday_daily.avg_length))):''}</div>
+                </div>
+            </div>`);
+            $('.all_scores').empty();
+            for (score of scores){
+                $('.all_scores').append(score_element(score));
+            }
+            $('.loading').hide();
+        });
+    });
+
+    function score_element(score){
+        var el = `<div class="score_element">
+                <div class="score_bg">
+                    <div class="score_bg_picture"><img src="${score.beatmap_bg}"></div>
+                    <div class="score_bg_preview_play">
+                        <audio src="https:${score.beatmap_preview}" loop="true" preload="none"></audio>
+                        <button class="play-button" onclick="playAudio($(this))"><img src="play.png"></button>
+                    </div>
+                </div>
+                <div class="score_info">
+                    <div class="score_title">${score.beatmap_title}</div>
+                    <hr>
+                    <div class="score_stats">
+                        <div class="score_efficiency"><b>Efficiency:</b> ${(score.fc_efficiency).toFixed(2)}</div>
+                        <div class="score_combo"><b>Combo:</b> ${score.user_combo}/${score.max_combo}x</div>
+                        <div class="score_accuracy"><b>Accuracy:</b> ${(score.user_accuracy*100).toFixed(2)}%</div>
+                        <div class="beatmap_stars"><b>Stars:</b> ${(score.stars).toFixed(2)}★</div>
+                        <div class="beatmap_length"><b>Length:</b> ${format_seconds(score.beatmap_length)}</div>
+                    </div>
+                </div>  
+            </div>`;
+        return el;
+    }
+
+    function format_seconds(seconds) {
+        var minutes = Math.floor(seconds / 60);
+        var secondsRemainder = seconds % 60;
+        return minutes + ":" + (secondsRemainder < 10 ? "0" : "") + secondsRemainder;
+    }
+
+    function playAudio(el) {
+        
+        for (let img of $('.score_bg_preview_play').find('img')){
+            $(img).attr("src", "play.png");
+        }
+        var audio = $(el).parent('.score_bg_preview_play').children('audio')[0];
+
+        if (audio.paused) {
+            document.querySelectorAll('audio').forEach(el => {
+                el.currentTime = 0;
+                el.pause()});
+            audio.play();
+            $(el).children('img').attr("src", "pause.png");
+        } else {
+            audio.pause();
+            $(el).children('img').attr("src", "play.png");
+        }
+    }
+
+    function make_sign(num, only_sign = false){
+        if (only_sign) {
+            if (Number(num)>0) return '+';
+            return '';
+        }
+        if (Number(num)>0) return '+'+num;
+        return num;
+    }
+
+    </script>
+
+    <link rel="stylesheet" href="styles.css">
+    <title>Recent scores</title>
+</head>
+
+<body>
+    <div class="daily"></div>
+    <div class="all_scores">
+        <div class="loading">loading...</div>
+    </div>
+</body>
+
+</html>
