@@ -13,7 +13,9 @@
             scores_ids = stats.scores_ids;
             daily = stats;
             yesterday_daily = stats.yesterday_daily?stats.yesterday_daily:undefined;
-            
+            daily_count = stats.scores_ids.length;
+            yesterday_count = yesterday_daily?yesterday_daily.scores_ids.length:0;
+
             $.ajax({
                 url: '/get_scores',
                 type: 'POST',
@@ -29,6 +31,8 @@
                 error: (error) => console.log(error)
             });
 
+            
+
             $('.daily').empty();
             $('.daily').append(`
             <h2>Daily stats</h2>
@@ -36,6 +40,7 @@
                 <div class="daily_headers">
                     <div class="headers_efficiency"><B>Efficiency:</B></div>
                     <div class="headers_pp"><B>Total PP:</B></div>
+                    <div class="headers_count"><B>FC count:</B></div>
                     <div class="headers_stars"><B>Average stars:</B></div>
                     <div class="headers_accuracy"><B>Average accuracy:</B></div>
                     <div class="headers_combo"><B>Average combo:</B></div>
@@ -44,6 +49,7 @@
                 <div class="today_daily">
                     <div class="daily_efficiency">${daily.fc_efficiency}</div>
                     <div class="daily_pp">${daily.total_pp}</div>
+                    <div class="daily_count">${daily_count}</div>
                     <div class="daily_stars">${daily.avg_stars}★</div>
                     <div class="daily_accuracy">${daily.avg_accuracy}%</div>
                     <div class="daily_combo">${Number(daily.avg_combo).toFixed(0)}x</div>
@@ -52,6 +58,7 @@
                 <div class="yesterday_daily">
                     <div class="yesterday_efficiency">${yesterday_daily? ''+ make_sign((Number(daily.fc_efficiency) - Number(yesterday_daily.fc_efficiency)).toFixed(2)):''}</div>
                     <div class="yesterday_pp">${yesterday_daily? ''+ make_sign((Number(daily.total_pp) - Number(yesterday_daily.total_pp)).toFixed(2)) + 'pp':''}</div>
+                    <div class="yesterday_count">${yesterday_daily? ''+ make_sign((Number(daily_count) - Number(yesterday_count)).toFixed(0)):''}</div>
                     <div class="yesterday_stars">${yesterday_daily? ''+ make_sign((Number(daily.avg_stars) - Number(yesterday_daily.avg_stars)).toFixed(2)) + '★':''}</div>
                     <div class="yesterday_accuracy">${yesterday_daily? ''+ make_sign((Number(daily.avg_accuracy) - Number(yesterday_daily.avg_accuracy)).toFixed(2)) + '%':''}</div>
                     <div class="yesterday_combo">${yesterday_daily? ''+ make_sign(Number((Number(daily.avg_combo) - Number(yesterday_daily.avg_combo))).toFixed(0)) + 'x':''}</div>

@@ -20,6 +20,7 @@ const combo_is_fc = 0.99; //%
 const score_mode = 'osu';
 const length_significance = 0.1; //0-1
 const efficiency_multiplier = 5;
+const weight_multiplier = 0.14285714;
 
 const check_dir = (dirname) => {
     try {
@@ -208,9 +209,11 @@ const calculate_stats = (old_stats, date) => {
         new_stats.avg_accuracy = 0;
         new_stats.total_pp = 0;
         
+        var fc_efficiency = [];
+
         for (let score_id of old_stats.scores_ids){
             let score_info = read_score(score_id);
-            new_stats.fc_efficiency += score_info.fc_efficiency;
+            fc_efficiency.push(score_info.fc_efficiency);
             new_stats.avg_stars += score_info.stars;
             new_stats.avg_combo += score_info.combo;
             new_stats.avg_length += score_info.beatmap_length;
@@ -218,7 +221,16 @@ const calculate_stats = (old_stats, date) => {
             new_stats.total_pp += score_info.pp;
         }
 
-        new_stats.fc_efficiency /= scores_length;
+        fc_efficiency.sort((v1,v2)=>v2-v1);
+       
+        for (let i in fc_efficiency){
+            let weight = (1 - i * weight_multiplier);
+            if (weight <= 0) {
+                weight = 0;
+            }
+            new_stats.fc_efficiency += fc_efficiency[i] * weight;
+        }
+
         new_stats.avg_combo /= scores_length;
         new_stats.avg_stars /= scores_length;
         new_stats.avg_length /= scores_length;
