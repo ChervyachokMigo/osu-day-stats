@@ -7,17 +7,35 @@
 
     <script>
     $(document).ready(function(){
-        $.post('/load_last_recent_scores', (all_scores_json)=> {
-            scores_data = JSON.parse(all_scores_json);
-            scores = scores_data.user_fcs;
-            daily = scores_data.daily_stats;
-            yesterday_daily = scores_data.yesterday_daily?scores_data.yesterday_daily:undefined;
+        $.post('/get_daily_stats', (stats_json)=> {
+            stats = JSON.parse(stats_json);
+
+            scores_ids = stats.scores_ids;
+            daily = stats;
+            yesterday_daily = stats.yesterday_daily?stats.yesterday_daily:undefined;
+            
+            $.ajax({
+                url: '/get_scores',
+                type: 'POST',
+                dataType: 'json',
+                data: JSON.stringify(scores_ids),
+                contentType: 'application/json; charset=utf-8',
+                success: (scores_info) => {
+                    $('.all_scores').empty();
+                    for (score of scores_info){
+                        $('.all_scores').append(score_element(score));
+                    }
+                },
+                error: (error) => console.log(error)
+            });
+
             $('.daily').empty();
             $('.daily').append(`
             <h2>Daily stats</h2>
             <div class="topic">
                 <div class="daily_headers">
                     <div class="headers_efficiency"><B>Efficiency:</B></div>
+                    <div class="headers_pp"><B>Total PP:</B></div>
                     <div class="headers_stars"><B>Average stars:</B></div>
                     <div class="headers_accuracy"><B>Average accuracy:</B></div>
                     <div class="headers_combo"><B>Average combo:</B></div>
@@ -25,23 +43,22 @@
                 </div>
                 <div class="today_daily">
                     <div class="daily_efficiency">${daily.fc_efficiency}</div>
+                    <div class="daily_pp">${daily.total_pp}</div>
                     <div class="daily_stars">${daily.avg_stars}★</div>
                     <div class="daily_accuracy">${daily.avg_accuracy}%</div>
                     <div class="daily_combo">${Number(daily.avg_combo).toFixed(0)}x</div>
                     <div class="daily_length">${format_seconds(daily.avg_length)}</div>
                 </div>
                 <div class="yesterday_daily">
-                    <div class="daily_efficiency">${yesterday_daily? ''+ make_sign((Number(daily.fc_efficiency) - Number(yesterday_daily.fc_efficiency)).toFixed(2)):''}</div>
-                    <div class="daily_stars">${yesterday_daily? ''+ make_sign((Number(daily.avg_stars) - Number(yesterday_daily.avg_stars)).toFixed(2)) + '★':''}</div>
-                    <div class="daily_accuracy">${yesterday_daily? ''+ make_sign((Number(daily.avg_accuracy) - Number(yesterday_daily.avg_accuracy)).toFixed(2)) + '%':''}</div>
-                    <div class="daily_combo">${yesterday_daily? ''+ make_sign(Number((Number(daily.avg_combo) - Number(yesterday_daily.avg_combo))).toFixed(0)) + 'x':''}</div>
-                    <div class="daily_length">${yesterday_daily? make_sign(Number(daily.avg_length) - Number(yesterday_daily.avg_length), true) + ''+ format_seconds((Number(daily.avg_length) - Number(yesterday_daily.avg_length))):''}</div>
+                    <div class="yesterday_efficiency">${yesterday_daily? ''+ make_sign((Number(daily.fc_efficiency) - Number(yesterday_daily.fc_efficiency)).toFixed(2)):''}</div>
+                    <div class="yesterday_pp">${yesterday_daily? ''+ make_sign((Number(daily.total_pp) - Number(yesterday_daily.total_pp)).toFixed(2)) + 'pp':''}</div>
+                    <div class="yesterday_stars">${yesterday_daily? ''+ make_sign((Number(daily.avg_stars) - Number(yesterday_daily.avg_stars)).toFixed(2)) + '★':''}</div>
+                    <div class="yesterday_accuracy">${yesterday_daily? ''+ make_sign((Number(daily.avg_accuracy) - Number(yesterday_daily.avg_accuracy)).toFixed(2)) + '%':''}</div>
+                    <div class="yesterday_combo">${yesterday_daily? ''+ make_sign(Number((Number(daily.avg_combo) - Number(yesterday_daily.avg_combo))).toFixed(0)) + 'x':''}</div>
+                    <div class="yesterday_length">${yesterday_daily? make_sign(Number(daily.avg_length) - Number(yesterday_daily.avg_length), true) + ''+ format_seconds((Number(daily.avg_length) - Number(yesterday_daily.avg_length))):''}</div>
                 </div>
             </div>`);
-            $('.all_scores').empty();
-            for (score of scores){
-                $('.all_scores').append(score_element(score));
-            }
+            
             $('.loading').hide();
         });
     });
@@ -60,8 +77,9 @@
                     <hr>
                     <div class="score_stats">
                         <div class="score_efficiency"><b>Efficiency:</b> ${(score.fc_efficiency).toFixed(2)}</div>
-                        <div class="score_combo"><b>Combo:</b> ${score.user_combo}/${score.max_combo}x</div>
-                        <div class="score_accuracy"><b>Accuracy:</b> ${(score.user_accuracy*100).toFixed(2)}%</div>
+                        <div class="beatmap_length"><b>PP: </b> ${score.pp}</div>
+                        <div class="score_combo"><b>Combo:</b> ${score.combo}/${score.max_combo}x</div>
+                        <div class="score_accuracy"><b>Accuracy:</b> ${(score.accuracy*100).toFixed(2)}%</div>
                         <div class="beatmap_stars"><b>Stars:</b> ${(score.stars).toFixed(2)}★</div>
                         <div class="beatmap_length"><b>Length:</b> ${format_seconds(score.beatmap_length)}</div>
                     </div>
@@ -72,7 +90,7 @@
 
     function format_seconds(seconds) {
         var minutes = Math.floor(seconds / 60);
-        var secondsRemainder = seconds % 60;
+        var secondsRemainder = Math.abs(seconds % 60);
         return minutes + ":" + (secondsRemainder < 10 ? "0" : "") + secondsRemainder;
     }
 
