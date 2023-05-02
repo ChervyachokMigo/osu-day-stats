@@ -23,8 +23,10 @@ const efficiency_multiplier = 5;
 const weight_multiplier = 0.14285714;
 
 const check_dir = (dirname) => {
+    console.log('Checking directory: ' + dirname)
     try {
-        fs.opendirSync(path.join(__dirname, dirname));
+        let dir_d = fs.opendirSync(path.join(__dirname, dirname));
+        dir_d.closeSync();
     } catch (e){
         if (e.code === 'ENOENT') {
             try{
@@ -62,6 +64,7 @@ const check_login = async()=>{
         if (token_info && token_info.access_token === undefined){
             throw new Error('Login failed. Recheck your credentials');
         }
+        console.log('you are logged in.');
         return true;
     } catch (e){
         throw new Error(e);
@@ -71,17 +74,22 @@ const check_login = async()=>{
 
 const get_user_id = async () => {
     try {
+        console.log('reading user id');
         const user_id = fs.readFileSync( path.join(__dirname, 'user_id') );
+        console.log('user id: ' + user_id);
         return Number(user_id);
     } catch (e){
         if (e.code === 'ENOENT') {
             try {
+                console.log(user_id, 'not found', 'get it from bancho');
                 const user_info =  await v2.user.me.details('osu');
                 try{
+                    console.log('saving user id');
                     fs.writeFileSync( path.join(__dirname, 'user_id' ), user_info.id.toString() );
                 } catch (e2){
                     throw new Error(e2);
                 }
+                console.log('user id: ' + user_info.id);
                 return user_info.id;
             } catch (e1){
                 throw new Error(e1);
@@ -92,13 +100,17 @@ const get_user_id = async () => {
 }
 
 const get_beatmap_info = async (beatmap_id) => {
+    console.log('getting beatmap info by id: ' + beatmap_id);
     try {
+        console.log('reading beatmap', beatmap_id);
         const beatmap_info = fs.readFileSync(path.join(__dirname, 'beatmaps', beatmap_id.toString() ));
         return JSON.parse(beatmap_info);
     } catch (e) {
         if (e.code === 'ENOENT') {
             try{
+                console.log('beatmap not found', beatmap_id, 'get it from bancho');
                 const beatmap_info = await v2.beatmap.diff(beatmap_id);
+                console.log('saving beatmap');
                 fs.writeFileSync(path.join(__dirname, 'beatmaps', beatmap_id.toString() ), JSON.stringify(beatmap_info));
                 return beatmap_info;
             } catch (e2){
@@ -111,6 +123,7 @@ const get_beatmap_info = async (beatmap_id) => {
 }
 
 const get_user_stats = (date) => {
+    console.log('getting user stats by date: ' + date);
     var stats = {
         fc_efficiency: 0,
         avg_stars: 0,
@@ -121,6 +134,7 @@ const get_user_stats = (date) => {
         scores_ids: []
     };
     try {
+        console.log('reading stats for', date);
         var stats_json = fs.readFileSync(path.join(__dirname, 'stats', date.toString() ));
         stats = JSON.parse(stats_json);
     } catch (e){
@@ -131,7 +145,7 @@ const get_user_stats = (date) => {
 
 const get_score_fc_info = async (score) => {
     const beatmap_info = await get_beatmap_info(score.beatmap.id);
-
+    console.log('check score for fc ', score.id);
     let score_id = score.id;
     let beatmap_max_combo = beatmap_info.max_combo;
     let beatmap_length = beatmap_info.hit_length;
@@ -167,6 +181,7 @@ const get_score_fc_info = async (score) => {
         try{
             if (!fs.existsSync(path.join(__dirname, 'scores', score_id.toString() ))){
                 try{
+                    console.log('saving score info', score_id);
                     fs.writeFileSync(path.join(__dirname, 'scores', score_id.toString() ), JSON.stringify(score_fc_info));
                 } catch (e2){
                     throw new Error(e2);
@@ -196,6 +211,7 @@ const floor = (val, digits=2)=>{
 }
 
 const calculate_stats = (old_stats, date) => {
+    console.log('calcing daily stats...');
     const scores_length = old_stats.scores_ids.length;
 
     if (scores_length > 0){
@@ -244,6 +260,7 @@ const calculate_stats = (old_stats, date) => {
         new_stats.total_pp = floor(new_stats.total_pp);
 
         try{
+            console.log('saving daily stats for', date);
             fs.writeFileSync(path.join(__dirname, 'stats', date), JSON.stringify(new_stats));
         } catch (e){
             console.error(e);
@@ -257,10 +274,17 @@ const calculate_stats = (old_stats, date) => {
 
 }
 
-const get_daily_stats = async (user_id) => {
+const get_daily_stats = async () => {
+    
+    const user_id = await get_user_id();
+
+    console.log('getting daily stats for user ' + user_id);
 
     const today = new Date().toJSON().slice(0, 10);
     var daily_stats = get_user_stats(today);  
+
+    console.log('request bancho for', 'recent', 'scores of user', user_id);
+    console.log('selected mode', score_mode);
 
     var new_scores = await v2.user.scores.category(user_id, 'recent', {mode: score_mode, limit: 100});
 
@@ -279,11 +303,14 @@ const get_daily_stats = async (user_id) => {
 
     try{
         const yesterday = (new Date((new Date(today)).setDate((new Date(today)).getDate()-1))).toJSON().slice(0, 10);
+        console.log('reading stats for', yesterday);
         var yesterday_stats = fs.readFileSync(path.join(__dirname, 'stats', yesterday.toString() ));
         daily_stats.yesterday_daily = JSON.parse(yesterday_stats);
     } catch (e){
         if (e.code !== 'ENOENT'){
             console.error(e)
+        } else {
+            console.log('stats not found');
         }
     }
 
@@ -291,21 +318,19 @@ const get_daily_stats = async (user_id) => {
 }
 
 const main = (async () => {
-
+    console.log('application started');
     if ( ! check_credentials()){
         throw new Error('"osu_login" or "osu_password" are not in environment. Add from "computer settings > environment variables" and relogin winddows.');
     } else {
         console.log('check_credentials complete. logining...');
     }
 
-    if (await check_login()){
-        console.log('you are logged in.');
+    if (!await check_login()){
+        return;
     }
 
-    const user_id = await get_user_id();
-
     app.listen(HTTP_PORT, ()=>{
-        console.log(`Webserver listening on http://localhost:${HTTP_PORT}`);
+        console.log(`Scores listening on http://localhost:${HTTP_PORT}`);
     });
 
     app.on('error', (e) => {
@@ -321,20 +346,46 @@ const main = (async () => {
     PathListener(app, '/play.png', 'play.png');
     PathListener(app, '/pause.png', 'pause.png');
 
+    app.get('/score', (req, res) => {
+        if (req.query === undefined || req.query.day === undefined){
+            res.send('error');
+            return;
+        }
+        try {
+            let fd = fs.openSync(path.join(__dirname, 'stats', req.query.day ));
+            fs.closeSync(fd);
+            var stats = get_user_stats(req.query.day)
+        res.send(JSON.stringify(stats));
+        } catch (e){
+            console.log(e);
+            res.send('error');
+        }
+    });
+
     app.post('/get_daily_stats', async (req, res) => {
-        var daily_stats = await get_daily_stats(user_id);
+        var daily_stats = await get_daily_stats();
         res.send(JSON.stringify(daily_stats));
     });  
 
     app.post('/get_scores', async (req, res) => {
+        
         var scores_info = [];
+
+        if (typeof req.body === 'undefined') {
+            res.send(JSON.stringify(scores_info));
+            return;
+        }
+
+        console.log('getting', req.body.length, 'scores');
 
         req.body.map(val=>{
             scores_info.push(read_score(val));
         });
 
         scores_info.sort((val1,val2)=>val2.fc_efficiency - val1.fc_efficiency);
-        
+
+        console.log('sending',scores_info.length,'scores');
+
         res.send(JSON.stringify(scores_info));
     });  
    

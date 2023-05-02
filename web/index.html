@@ -38,6 +38,8 @@
             <h2>Daily stats</h2>
             <div class="topic">
                 <div class="daily_headers">
+                    <div class="headers_title"><B>Title</B></div>
+                    <hr>
                     <div class="headers_efficiency"><B>Efficiency:</B></div>
                     <div class="headers_pp"><B>Total PP:</B></div>
                     <div class="headers_count"><B>FC count:</B></div>
@@ -47,6 +49,8 @@
                     <div class="headers_length"><B>Average length:</B></div>
                 </div>
                 <div class="today_daily">
+                    <div class="daily_title"><B>Today</B></div>
+                    <hr>
                     <div class="daily_efficiency">${daily.fc_efficiency}</div>
                     <div class="daily_pp">${daily.total_pp}</div>
                     <div class="daily_count">${daily_count}</div>
@@ -56,6 +60,8 @@
                     <div class="daily_length">${format_seconds(daily.avg_length)}</div>
                 </div>
                 <div class="yesterday_daily">
+                    <div class="yesterday_title"><B>Yesterday compare</B></div>
+                    <hr>
                     <div class="yesterday_efficiency">${yesterday_daily? ''+ make_sign((Number(daily.fc_efficiency) - Number(yesterday_daily.fc_efficiency)).toFixed(2)):''}</div>
                     <div class="yesterday_pp">${yesterday_daily? ''+ make_sign((Number(daily.total_pp) - Number(yesterday_daily.total_pp)).toFixed(2)) + 'pp':''}</div>
                     <div class="yesterday_count">${yesterday_daily? ''+ make_sign((Number(daily_count) - Number(yesterday_count)).toFixed(0)):''}</div>
