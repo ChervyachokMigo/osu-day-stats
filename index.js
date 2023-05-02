@@ -16,7 +16,7 @@ const webserver_dir = 'web';
 const osu_login = process.env.osu_login;
 const osu_password = process.env.osu_password;
 
-const combo_is_fc = 0.99; //%
+const combo_is_fc = 0.98; //%
 const score_mode = 'osu';
 const length_significance = 0.1; //0-1
 const efficiency_multiplier = 5;
