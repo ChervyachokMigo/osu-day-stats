@@ -1,14 +1,47 @@
+body {
+    background-color: #2a2226;
+    color: #fefefe;
+    font-family: Torus,Inter,"Helvetica Neue",Tahoma,Arial,"Hiragino Kaku Gothic ProN",Meiryo,"Microsoft YaHei","Apple SD Gothic Neo",sans-serif;
+}
+
+.loading {
+    font-size: xx-large;
+    margin: auto;
+    padding: 0;
+    width:min-content;
+    align-content: center;
+    display: flex;
+}
+
 .score_element {
+    margin: auto;
+    width: 1000px;
     display: flex;
     margin-bottom: 15px;
     padding: 15px;
-    border: 1px solid #ccc;
+    background-color: hsl( 333 ,10%,25% );
+    border: 0;
+    border-radius: 10px;
+    font-size: 14px;
 }
+
+.score_element a {
+    color: #d3a1b7;
+    text-decoration-line: none;
+    cursor: pointer;
+}
+.score_element a:hover {
+    text-decoration-line: underline;
+    color:#dab3c5;
+}
+
 .score_bg {
     position: relative;
-    width: 150px;
-    height: 150px;
+    width: max-content;
+    height: max-content;
     margin-right: 15px;
+    margin-top: auto;
+    margin-bottom: auto;
 }
 .score_bg_picture {
     width: 100%;
@@ -16,6 +49,11 @@
     background-size: cover;
     background-position: center;
     opacity: 0.7;
+}
+
+.score_bg_picture img {
+    border-radius: 10px;
+    width: 175px;
 }
 
 .score_bg_preview_play {
@@ -63,12 +101,15 @@
 }
 
 .daily {
-    display: flex;
+    display: none;
     flex-direction: column;
     justify-content: space-between;
     margin-bottom: 15px;
     padding: 15px;
-    background-color: #f0f0f0;
+    background-color: #382e32;
+    border-radius: 10px;
+    width: max-content;
+    margin: 15px auto 15px auto;
 }
 
 h2 {
@@ -79,13 +120,29 @@ h2 {
 }
 
 .topic {
+    padding-top: 15px;
     display: flex;
     flex-direction: row;
     align-items: center;
     margin: auto;
-    font-size: x-large;
+    font-size: larger;
 }
 
-.yesterday_daily, .today_daily {
-    padding: 25px;
+.lastday_daily, .today_daily {
+    padding: 0px 25px 0px 25px;
+}
+
+.positive {
+    color: #00c947;
+}
+
+.negative {
+    color: #e35858;
+}
+
+.flex {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
 }

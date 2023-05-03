@@ -166,6 +166,7 @@ const get_score_fc_info = async (score) => {
         let score_fc_info = {
             score_id,
             beatmap_title: `${beatmap_info.beatmapset.artist} - ${beatmap_info.beatmapset.title} [${beatmap_info.version}]`,
+            beatmap_url: `https://osu.ppy.sh/beatmapsets/${beatmap_info.beatmapset_id}#${beatmap_info.mode}/${beatmap_info.id}`,
             beatmap_preview: beatmap_info.beatmapset.preview_url,
             beatmap_bg: beatmap_info.beatmapset.covers.list,
             beatmap_id: beatmap_info.id,
@@ -302,10 +303,15 @@ const get_daily_stats = async () => {
     daily_stats = calculate_stats(daily_stats, today);
 
     try{
-        const yesterday = (new Date((new Date(today)).setDate((new Date(today)).getDate()-1))).toJSON().slice(0, 10);
-        console.log('reading stats for', yesterday);
-        var yesterday_stats = fs.readFileSync(path.join(__dirname, 'stats', yesterday.toString() ));
-        daily_stats.yesterday_daily = JSON.parse(yesterday_stats);
+        let stats_folder = fs.readdirSync(path.join(__dirname, 'stats'));
+        if (stats_folder.length > 1){
+            const lastday = stats_folder[stats_folder.length-2];
+            if (lastday !== today){
+                console.log('reading stats for', lastday);
+                var lastday_stats = fs.readFileSync(path.join(__dirname, 'stats', lastday.toString() ));
+                daily_stats.lastday_stats = JSON.parse(lastday_stats);
+            }
+        }
     } catch (e){
         if (e.code !== 'ENOENT'){
             console.error(e)

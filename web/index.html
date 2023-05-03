@@ -12,9 +12,9 @@
 
             scores_ids = stats.scores_ids;
             daily = stats;
-            yesterday_daily = stats.yesterday_daily?stats.yesterday_daily:undefined;
+            lastday_stats = stats.lastday_stats?stats.lastday_stats:undefined;
             daily_count = stats.scores_ids.length;
-            yesterday_count = yesterday_daily?yesterday_daily.scores_ids.length:0;
+            lastday_count = lastday_stats?lastday_stats.scores_ids.length:0;
 
             $.ajax({
                 url: '/get_scores',
@@ -27,6 +27,7 @@
                     for (score of scores_info){
                         $('.all_scores').append(score_element(score));
                     }
+                    paint_lastday_compare_text();
                 },
                 error: (error) => console.log(error)
             });
@@ -61,21 +62,22 @@
                     <div class="daily_combo">${Number(daily.avg_combo).toFixed(0)}x</div>
                     <div class="daily_length">${format_seconds(daily.avg_length)}</div>
                 </div>
-                <div class="yesterday_daily">
-                    <div class="yesterday_title"><B>Yesterday compare</B></div>
+                <div class="lastday_stats">
+                    <div class="lastday_title"><B>Lastday compare</B></div>
                     <hr>
-                    <div class="yesterday_efficiency">${yesterday_daily? ''+ make_sign((Number(daily.fc_efficiency) - Number(yesterday_daily.fc_efficiency)).toFixed(2)):''}</div>
-                    <div class="yesterday_pp">${yesterday_daily? ''+ make_sign((Number(daily.total_pp) - Number(yesterday_daily.total_pp)).toFixed(2)) + 'pp':''}</div>
-                    <div class="headers_avg_pp">${yesterday_daily? ''+ daily_count>0?make_sign(Number((daily.total_pp/daily_count - yesterday_daily.total_pp/yesterday_count).toFixed(2))):0:''}</div>
-                    <div class="yesterday_count">${yesterday_daily? ''+ make_sign((Number(daily_count) - Number(yesterday_count)).toFixed(0)):''}</div>
-                    <div class="yesterday_stars">${yesterday_daily? ''+ make_sign((Number(daily.avg_stars) - Number(yesterday_daily.avg_stars)).toFixed(2)) + '★':''}</div>
-                    <div class="yesterday_accuracy">${yesterday_daily? ''+ make_sign((Number(daily.avg_accuracy) - Number(yesterday_daily.avg_accuracy)).toFixed(2)) + '%':''}</div>
-                    <div class="yesterday_combo">${yesterday_daily? ''+ make_sign(Number((Number(daily.avg_combo) - Number(yesterday_daily.avg_combo))).toFixed(0)) + 'x':''}</div>
-                    <div class="yesterday_length">${yesterday_daily? make_sign(Number(daily.avg_length) - Number(yesterday_daily.avg_length), true) + ''+ format_seconds((Number(daily.avg_length) - Number(yesterday_daily.avg_length))):''}</div>
+                    <div class="lastday_efficiency">${lastday_stats? ''+ make_sign((Number(daily.fc_efficiency) - Number(lastday_stats.fc_efficiency)).toFixed(2)):''}</div>
+                    <div class="lastday_pp">${lastday_stats? ''+ make_sign((Number(daily.total_pp) - Number(lastday_stats.total_pp)).toFixed(2)) + 'pp':''}</div>
+                    <div class="headers_avg_pp">${lastday_stats? ''+ daily_count>0?make_sign(Number((daily.total_pp/daily_count - lastday_stats.total_pp/lastday_count).toFixed(2))):0:''}</div>
+                    <div class="lastday_count">${lastday_stats? ''+ make_sign((Number(daily_count) - Number(lastday_count)).toFixed(0)):''}</div>
+                    <div class="lastday_stars">${lastday_stats? ''+ make_sign((Number(daily.avg_stars) - Number(lastday_stats.avg_stars)).toFixed(2)) + '★':''}</div>
+                    <div class="lastday_accuracy">${lastday_stats? ''+ make_sign((Number(daily.avg_accuracy) - Number(lastday_stats.avg_accuracy)).toFixed(2)) + '%':''}</div>
+                    <div class="lastday_combo">${lastday_stats? ''+ make_sign(Number((Number(daily.avg_combo) - Number(lastday_stats.avg_combo))).toFixed(0)) + 'x':''}</div>
+                    <div class="lastday_length">${lastday_stats? make_sign(Number(daily.avg_length) - Number(lastday_stats.avg_length), true) + ''+ format_seconds((Number(daily.avg_length) - Number(lastday_stats.avg_length))):''}</div>
                 </div>
             </div>`);
             
             $('.loading').hide();
+            $('.daily').toggleClass('flex', true);
         });
     });
 
@@ -89,7 +91,7 @@
                     </div>
                 </div>
                 <div class="score_info">
-                    <div class="score_title">${score.beatmap_title}</div>
+                    <div class="score_title"><a href=${score.beatmap_url}>${score.beatmap_title}</a></div>
                     <hr>
                     <div class="score_stats">
                         <div class="score_efficiency"><b>Efficiency:</b> ${(score.fc_efficiency).toFixed(2)}</div>
@@ -102,6 +104,17 @@
                 </div>  
             </div>`;
         return el;
+    }
+
+    function paint_lastday_compare_text(){
+        $('.lastday_stats').find('*').each((i, el)=>{
+            if (el.textContent.slice(0,1) === '+'){
+                $(el).toggleClass('positive');
+            }
+            if (el.textContent.slice(0,1) === '-'){
+                $(el).toggleClass('negative');
+            }
+        })
     }
 
     function format_seconds(seconds) {
