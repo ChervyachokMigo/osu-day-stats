@@ -128,8 +128,14 @@ h2 {
     font-size: larger;
 }
 
-.lastday_daily, .today_daily {
+.today_daily {
     padding: 0px 25px 0px 25px;
+    color: #f0b89c;
+    text-align: right;
+}
+
+.daily_title {
+    color: #fefefe;
 }
 
 .positive {

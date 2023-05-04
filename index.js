@@ -96,7 +96,24 @@ const get_user_id = async () => {
             }
         }
     }
-    
+}
+
+const get_user_info = async () => {
+    try {
+        console.log('reading user profile from bancho')
+        const user_info =  await v2.user.me.details('osu');
+        return {
+            rank: user_info.statistics.global_rank, 
+            country_rank: user_info.statistics.country_rank,
+            pp: user_info.statistics.pp,
+            accuracy: user_info.statistics.hit_accuracy,
+            hits: user_info.statistics.total_hits,
+            playcount: user_info.statistics.play_count,
+            playtime: user_info.statistics.play_time
+        }
+    } catch (e){
+        throw new Error(e);
+    }
 }
 
 const get_beatmap_info = async (beatmap_id) => {
@@ -179,6 +196,8 @@ const get_score_fc_info = async (score) => {
             pp
         }
 
+        // _ max_pp, pp v profile, screen stats, select day,
+
         try{
             if (!fs.existsSync(path.join(__dirname, 'scores', score_id.toString() ))){
                 try{
@@ -212,6 +231,7 @@ const floor = (val, digits=2)=>{
 }
 
 const calculate_stats = (old_stats, date) => {
+
     console.log('calcing daily stats...');
     const scores_length = old_stats.scores_ids.length;
 
@@ -260,13 +280,6 @@ const calculate_stats = (old_stats, date) => {
         new_stats.avg_accuracy = floor(new_stats.avg_accuracy);
         new_stats.total_pp = floor(new_stats.total_pp);
 
-        try{
-            console.log('saving daily stats for', date);
-            fs.writeFileSync(path.join(__dirname, 'stats', date), JSON.stringify(new_stats));
-        } catch (e){
-            console.error(e);
-        }
-
         return new_stats
 
     }  else {
@@ -287,6 +300,8 @@ const get_daily_stats = async () => {
     console.log('request bancho for', 'recent', 'scores of user', user_id);
     console.log('selected mode', score_mode);
 
+    daily_stats.profile_last_update = await get_user_info();
+
     var new_scores = await v2.user.scores.category(user_id, 'recent', {mode: score_mode, limit: 100});
 
     for (let new_score of new_scores){ 
@@ -301,6 +316,13 @@ const get_daily_stats = async () => {
     }
 
     daily_stats = calculate_stats(daily_stats, today);
+
+    try{
+        console.log('saving daily stats for', today);
+        fs.writeFileSync(path.join(__dirname, 'stats', today), JSON.stringify(daily_stats));
+    } catch (e){
+        console.error(e);
+    }
 
     try{
         let stats_folder = fs.readdirSync(path.join(__dirname, 'stats'));

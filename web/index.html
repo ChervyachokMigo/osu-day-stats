@@ -41,38 +41,59 @@
                 <div class="daily_headers">
                     <div class="headers_title"><B>Title</B></div>
                     <hr>
-                    <div class="headers_efficiency"><B>Efficiency:</B></div>
-                    <div class="headers_pp"><B>Total PP:</B></div>
-                    <div class="headers_avg_pp"><B>PP per FC:</B></div>
-                    <div class="headers_count"><B>FC count:</B></div>
-                    <div class="headers_stars"><B>Average stars:</B></div>
-                    <div class="headers_accuracy"><B>Average accuracy:</B></div>
-                    <div class="headers_combo"><B>Average combo:</B></div>
-                    <div class="headers_length"><B>Average length:</B></div>
+                    <div class="headers_efficiency"><B>Efficiency</B></div>
+                    <div class="headers_pp"><B>Total PP</B></div>
+                    <div class="headers_avg_pp"><B>PP per FC</B></div>
+                    <div class="headers_count"><B>FC count</B></div>
+                    <div class="headers_stars"><B>Average stars</B></div>
+                    <div class="headers_accuracy"><B>Average accuracy</B></div>
+                    <div class="headers_combo"><B>Average combo</B></div>
+                    <div class="headers_length"><B>Average length</B></div>
+                    <div class="headers_profile_rank"><B>Global rank</B></div>
+                    <div class="headers_profile_country_rank"><B>Country rank</B></div>
+                    <div class="headers_profile_pp"><B>Profile PP</B></div>
+                    <div class="headers_profile_accuracy"><B>Profile accuracy</B></div>
+                    <div class="headers_profile_hits"><B>Total hits</B></div>
+                    <div class="headers_profile_playcount"><B>Total playcount</B></div>
+                    <div class="headers_profile_playtime"><B>Total playtime</B></div>
                 </div>
                 <div class="today_daily">
                     <div class="daily_title"><B>Today</B></div>
                     <hr>
                     <div class="daily_efficiency">${daily.fc_efficiency}</div>
-                    <div class="daily_pp">${daily.total_pp}</div>
-                    <div class="daily_avg_pp">${daily_count>0?(daily.total_pp/daily_count).toFixed(2):0}</div>
+                    <div class="daily_pp">${Math.floor(daily.total_pp)} pp</div>
+                    <div class="daily_avg_pp">${daily_count>0?Math.floor(daily.total_pp/daily_count):0} pp</div>
                     <div class="daily_count">${daily_count}</div>
-                    <div class="daily_stars">${daily.avg_stars}★</div>
+                    <div class="daily_stars">${daily.avg_stars} ★</div>
                     <div class="daily_accuracy">${daily.avg_accuracy}%</div>
                     <div class="daily_combo">${Number(daily.avg_combo).toFixed(0)}x</div>
                     <div class="daily_length">${format_seconds(daily.avg_length)}</div>
+                    <div class="daily_profile_rank">#${daily.profile_last_update.rank}</div>
+                    <div class="daily_profile_country_rank">#${daily.profile_last_update.country_rank}</div>
+                    <div class="daily_profile_pp">${Math.floor(daily.profile_last_update.pp)} pp</div>
+                    <div class="daily_profile_accuracy">${daily.profile_last_update.accuracy.toFixed(2)}%</div>
+                    <div class="daily_profile_hits">${daily.profile_last_update.hits}</div>
+                    <div class="daily_profile_playcount">${daily.profile_last_update.playcount}</div>
+                    <div class="daily_profile_playtime">${format_date(daily.profile_last_update.playtime)}</div>
                 </div>
                 <div class="lastday_stats">
                     <div class="lastday_title"><B>Lastday compare</B></div>
                     <hr>
                     <div class="lastday_efficiency">${lastday_stats? ''+ make_sign((Number(daily.fc_efficiency) - Number(lastday_stats.fc_efficiency)).toFixed(2)):''}</div>
-                    <div class="lastday_pp">${lastday_stats? ''+ make_sign((Number(daily.total_pp) - Number(lastday_stats.total_pp)).toFixed(2)) + 'pp':''}</div>
-                    <div class="headers_avg_pp">${lastday_stats? ''+ daily_count>0?make_sign(Number((daily.total_pp/daily_count - lastday_stats.total_pp/lastday_count).toFixed(2))):0:''}</div>
+                    <div class="lastday_pp">${lastday_stats? ''+ make_sign((Number(daily.total_pp) - Number(lastday_stats.total_pp)).toFixed(2)) + ' pp':''}</div>
+                    <div class="lastday_avg_pp">${lastday_stats? ''+ daily_count>0?make_sign(Number((daily.total_pp/daily_count - lastday_stats.total_pp/lastday_count).toFixed(2))) + ' pp':0:''}</div>
                     <div class="lastday_count">${lastday_stats? ''+ make_sign((Number(daily_count) - Number(lastday_count)).toFixed(0)):''}</div>
-                    <div class="lastday_stars">${lastday_stats? ''+ make_sign((Number(daily.avg_stars) - Number(lastday_stats.avg_stars)).toFixed(2)) + '★':''}</div>
+                    <div class="lastday_stars">${lastday_stats? ''+ make_sign((Number(daily.avg_stars) - Number(lastday_stats.avg_stars)).toFixed(2)) + ' ★':''}</div>
                     <div class="lastday_accuracy">${lastday_stats? ''+ make_sign((Number(daily.avg_accuracy) - Number(lastday_stats.avg_accuracy)).toFixed(2)) + '%':''}</div>
                     <div class="lastday_combo">${lastday_stats? ''+ make_sign(Number((Number(daily.avg_combo) - Number(lastday_stats.avg_combo))).toFixed(0)) + 'x':''}</div>
                     <div class="lastday_length">${lastday_stats? make_sign(Number(daily.avg_length) - Number(lastday_stats.avg_length), true) + ''+ format_seconds((Number(daily.avg_length) - Number(lastday_stats.avg_length))):''}</div>
+                    <div class="lastday_profile_rank">${lastday_stats? make_sign(-(daily.profile_last_update.rank - lastday_stats.profile_last_update.rank)):''}</div>
+                    <div class="lastday_profile_country_rank">${lastday_stats? make_sign(-(daily.profile_last_update.country_rank - lastday_stats.profile_last_update.country_rank)):''}</div>
+                    <div class="lastday_profile_pp">${lastday_stats? make_sign(Math.floor(daily.profile_last_update.pp - lastday_stats.profile_last_update.pp)):''} pp</div>
+                    <div class="lastday_profile_accuracy">${lastday_stats? make_sign(daily.profile_last_update.accuracy - lastday_stats.profile_last_update.accuracy):''}%</div>
+                    <div class="lastday_profile_hits">${lastday_stats? make_sign(daily.profile_last_update.hits - lastday_stats.profile_last_update.hits):''}</div>
+                    <div class="lastday_profile_playcount">${lastday_stats? make_sign(daily.profile_last_update.playcount - lastday_stats.profile_last_update.playcount):''}</div>
+                    <div class="lastday_profile_playtime">${lastday_stats? make_sign(daily.profile_last_update.playtime - lastday_stats.profile_last_update.playtime):''}</div>
                 </div>
             </div>`);
             
@@ -121,6 +142,15 @@
         var minutes = Math.floor(seconds / 60);
         var secondsRemainder = Math.abs(seconds % 60);
         return minutes + ":" + (secondsRemainder < 10 ? "0" : "") + secondsRemainder;
+    }
+
+    function format_date(date_number){
+        const date_days = date_number / 24 / 60 / 60;
+        const days = Math.trunc( date_days );
+        const date_hours = (date_days - days) / 0.0416667;
+        const hours = Math.trunc( date_hours );
+        const minutes = Math.trunc((date_hours - hours) / 0.0166667);
+        return `${days>0?days + 'd ':''}${hours>0?hours + 'h ':''}${minutes>0?minutes + 'm':''}`;
     }
 
     function playAudio(el) {
