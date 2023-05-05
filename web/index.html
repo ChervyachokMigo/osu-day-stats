@@ -40,6 +40,7 @@
                     <div class="headers_accuracy"><B>Average accuracy</B></div>
                     <div class="headers_combo"><B>Average combo</B></div>
                     <div class="headers_length"><B>Average length</B></div>
+                    <div class="headers_max_fcp"><B>Max efficiency</B></div>
                     <div class="headers_max_pp"><B>Max PP</B></div>
                     <div class="headers_max_combo"><B>Max combo</B></div>
                     <div class="headers_max_length"><B>Max length</B></div>
@@ -63,6 +64,7 @@
                     <div class="daily_accuracy">${daily.avg_accuracy}%</div>
                     <div class="daily_combo">${Number(daily.avg_combo).toFixed(0)}x</div>
                     <div class="daily_length">${format_seconds(daily.avg_length)}</div>
+                    <div class="daily_max_fcp">${daily.max_fcp}</div>
                     <div class="daily_max_pp">${Math.floor(daily.max_pp)}</div>
                     <div class="daily_max_combo">${daily.max_combo}x</div>
                     <div class="daily_max_length">${format_seconds(daily.max_length)}</div>
@@ -86,6 +88,7 @@
                     <div class="lastday_accuracy">${lastday_stats? ''+ make_sign((Number(daily.avg_accuracy) - Number(lastday_stats.avg_accuracy)).toFixed(2)) + '%':''}</div>
                     <div class="lastday_combo">${lastday_stats? ''+ make_sign(Number((Number(daily.avg_combo) - Number(lastday_stats.avg_combo))).toFixed(0)) + 'x':''}</div>
                     <div class="lastday_length">${lastday_stats? make_sign(Number(daily.avg_length) - Number(lastday_stats.avg_length), true) + ''+ format_seconds((Number(daily.avg_length) - Number(lastday_stats.avg_length))):''}</div>
+                    <div class="lastday_max_fcp">${lastday_stats? make_sign( daily.max_fcp - lastday_stats.max_fcp ):''}</div>
                     <div class="lastday_max_pp">${lastday_stats? make_sign( daily.max_pp - lastday_stats.max_pp ) + ' pp':''}</div>
                     <div class="lastday_max_combo">${lastday_stats? make_sign( daily.max_combo - lastday_stats.max_combo ) + 'x':''}</div>
                     <div class="lastday_max_length">${lastday_stats? make_sign( format_seconds(daily.max_length - lastday_stats.max_length) ):''}</div>

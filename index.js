@@ -35,6 +35,7 @@ const default_stats = {
     max_length: 0,
     max_combo: 0,
     max_stars: 0,
+    max_fcp: 0,
 
     scores_ids: []
     
@@ -258,7 +259,8 @@ const calculate_stats = (old_stats, date) => {
         new_stats.max_length = 0;
         new_stats.max_combo = 0;
         new_stats.max_stars = 0;
-
+        new_stats.max_fcp = 0;
+        
         var fc_efficiency = [];
 
         for (let score_id of old_stats.scores_ids){
@@ -272,6 +274,7 @@ const calculate_stats = (old_stats, date) => {
             new_stats.total_pp += score_info.pp;
         }
 
+        new_stats.max_fcp = Math.max(...array.map(o => o.fc_efficiency));
         new_stats.max_pp = Math.max(...array.map(o => o.pp));
         new_stats.max_length = Math.max(...array.map(o => o.beatmap_length));
         new_stats.max_combo = Math.max(...array.map(o => o.combo));
