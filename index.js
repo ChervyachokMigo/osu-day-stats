@@ -1,3 +1,5 @@
+// _ max_pp, screen stats, select day
+
 const fs = require('fs');
 const path = require('path');
 const { v2, auth } = require('osu-api-extended')
@@ -21,6 +23,22 @@ const score_mode = 'osu';
 const length_significance = 0.1; //0-1
 const efficiency_multiplier = 5;
 const weight_multiplier = 0.14285714;
+
+const default_stats = {
+    fc_efficiency: 0,
+    avg_stars: 0,
+    avg_combo: 0,
+    avg_length: 0,
+    avg_accuracy: 0,
+    total_pp: 0,
+    max_pp: 0,
+    max_length: 0,
+    max_combo: 0,
+    max_stars: 0,
+
+    scores_ids: []
+    
+}
 
 const check_dir = (dirname) => {
     console.log('Checking directory: ' + dirname)
@@ -141,15 +159,7 @@ const get_beatmap_info = async (beatmap_id) => {
 
 const get_user_stats = (date) => {
     console.log('getting user stats by date: ' + date);
-    var stats = {
-        fc_efficiency: 0,
-        avg_stars: 0,
-        avg_combo: 0,
-        avg_length: 0,
-        avg_accuracy: 0,
-        total_pp: 0,
-        scores_ids: []
-    };
+    var stats = Object.assign({}, default_stats);
     try {
         console.log('reading stats for', date);
         var stats_json = fs.readFileSync(path.join(__dirname, 'stats', date.toString() ));
@@ -160,7 +170,7 @@ const get_user_stats = (date) => {
     return stats;
 }
 
-const get_score_fc_info = async (score) => {
+const save_score_info = async (score) => {
     const beatmap_info = await get_beatmap_info(score.beatmap.id);
     console.log('check score for fc ', score.id);
     let score_id = score.id;
@@ -195,8 +205,6 @@ const get_score_fc_info = async (score) => {
             fc_efficiency,
             pp
         }
-
-        // _ max_pp, pp v profile, screen stats, select day,
 
         try{
             if (!fs.existsSync(path.join(__dirname, 'scores', score_id.toString() ))){
@@ -236,6 +244,7 @@ const calculate_stats = (old_stats, date) => {
     const scores_length = old_stats.scores_ids.length;
 
     if (scores_length > 0){
+        var scores_info = [];
 
         var new_stats = Object.assign({}, old_stats);
 
@@ -245,11 +254,16 @@ const calculate_stats = (old_stats, date) => {
         new_stats.avg_length = 0;
         new_stats.avg_accuracy = 0;
         new_stats.total_pp = 0;
-        
+        new_stats.max_pp = 0;
+        new_stats.max_length = 0;
+        new_stats.max_combo = 0;
+        new_stats.max_stars = 0;
+
         var fc_efficiency = [];
 
         for (let score_id of old_stats.scores_ids){
-            let score_info = read_score(score_id);
+            const score_info = read_score(score_id);
+            scores_info.push(score_info);
             fc_efficiency.push(score_info.fc_efficiency);
             new_stats.avg_stars += score_info.stars;
             new_stats.avg_combo += score_info.combo;
@@ -257,6 +271,11 @@ const calculate_stats = (old_stats, date) => {
             new_stats.avg_accuracy += score_info.accuracy*100;
             new_stats.total_pp += score_info.pp;
         }
+
+        new_stats.max_pp = Math.max(...array.map(o => o.pp));
+        new_stats.max_length = Math.max(...array.map(o => o.beatmap_length));
+        new_stats.max_combo = Math.max(...array.map(o => o.combo));
+        new_stats.max_stars = Math.max(...array.map(o => o.stars));
 
         fc_efficiency.sort((v1,v2)=>v2-v1);
        
@@ -280,10 +299,10 @@ const calculate_stats = (old_stats, date) => {
         new_stats.avg_accuracy = floor(new_stats.avg_accuracy);
         new_stats.total_pp = floor(new_stats.total_pp);
 
-        return new_stats
+        return { stats: new_stats, scores: scores_info};
 
     }  else {
-        return old_stats;
+        return { stats: old_stats, scores: []};
     }
 
 }
@@ -308,18 +327,18 @@ const get_daily_stats = async () => {
         if (today !== new Date(new_score.created_at).toJSON().slice(0, 10)) continue;
 
         if (daily_stats.scores_ids.findIndex((val)=>val===new_score.id) === -1){
-            const score_info = await get_score_fc_info(new_score);
+            const score_info = await save_score_info(new_score);
             if (score_info !== undefined){
                 daily_stats.scores_ids.push(new_score.id);
             }
         }
     }
 
-    daily_stats = calculate_stats(daily_stats, today);
+    var stats_and_scores = calculate_stats(daily_stats, today);
 
     try{
         console.log('saving daily stats for', today);
-        fs.writeFileSync(path.join(__dirname, 'stats', today), JSON.stringify(daily_stats));
+        fs.writeFileSync(path.join(__dirname, 'stats', today), JSON.stringify(stats_and_scores.stats));
     } catch (e){
         console.error(e);
     }
@@ -331,7 +350,7 @@ const get_daily_stats = async () => {
             if (lastday !== today){
                 console.log('reading stats for', lastday);
                 var lastday_stats = fs.readFileSync(path.join(__dirname, 'stats', lastday.toString() ));
-                daily_stats.lastday_stats = JSON.parse(lastday_stats);
+                stats_and_scores.stats.lastday_stats = JSON.parse(lastday_stats);
             }
         }
     } catch (e){
@@ -342,7 +361,7 @@ const get_daily_stats = async () => {
         }
     }
 
-    return daily_stats;
+    return stats_and_scores;
 }
 
 const main = (async () => {
@@ -393,28 +412,6 @@ const main = (async () => {
     app.post('/get_daily_stats', async (req, res) => {
         var daily_stats = await get_daily_stats();
         res.send(JSON.stringify(daily_stats));
-    });  
-
-    app.post('/get_scores', async (req, res) => {
-        
-        var scores_info = [];
-
-        if (typeof req.body === 'undefined') {
-            res.send(JSON.stringify(scores_info));
-            return;
-        }
-
-        console.log('getting', req.body.length, 'scores');
-
-        req.body.map(val=>{
-            scores_info.push(read_score(val));
-        });
-
-        scores_info.sort((val1,val2)=>val2.fc_efficiency - val1.fc_efficiency);
-
-        console.log('sending',scores_info.length,'scores');
-
-        res.send(JSON.stringify(scores_info));
     });  
    
 })();
