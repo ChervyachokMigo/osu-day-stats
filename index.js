@@ -1,4 +1,4 @@
-// _ max_pp, screen stats, select day
+// screen stats, select day, настройки: выбор статов, выбор сортировки
 
 const fs = require('fs');
 const path = require('path');
@@ -36,7 +36,8 @@ const default_stats = {
     max_combo: 0,
     max_stars: 0,
     max_fcp: 0,
-
+    fcp_per_playcount: 0,
+    fcp_per_playtime: 0,
     scores_ids: []
     
 }
@@ -62,6 +63,16 @@ const check_dir = (dirname) => {
 check_dir('beatmaps');
 check_dir('scores');
 check_dir('stats');
+
+const promise_timeout = async (promise, timeout) => {
+    return new Promise((res, rej)=>{
+        setTimeout(()=>{
+            console.log(promise);
+            rej('timeout error');
+        }, timeout);
+        res(promise);
+    });
+}
 
 const check_credentials = ()=>{
     if (osu_login === undefined || osu_password === undefined) return false;
@@ -101,7 +112,7 @@ const get_user_id = async () => {
         if (e.code === 'ENOENT') {
             try {
                 console.log(user_id, 'not found', 'get it from bancho');
-                const user_info =  await v2.user.me.details('osu');
+                const user_info =  await v2.user.me.details('osu').catch(er=>console.log(er));
                 try{
                     console.log('saving user id');
                     fs.writeFileSync( path.join(__dirname, 'user_id' ), user_info.id.toString() );
@@ -120,7 +131,7 @@ const get_user_id = async () => {
 const get_user_info = async () => {
     try {
         console.log('reading user profile from bancho')
-        const user_info =  await v2.user.me.details('osu');
+        const user_info =  await v2.user.me.details('osu').catch(er=>console.log(er));
         return {
             rank: user_info.statistics.global_rank, 
             country_rank: user_info.statistics.country_rank,
@@ -145,7 +156,7 @@ const get_beatmap_info = async (beatmap_id) => {
         if (e.code === 'ENOENT') {
             try{
                 console.log('beatmap not found', beatmap_id, 'get it from bancho');
-                const beatmap_info = await v2.beatmap.diff(beatmap_id);
+                const beatmap_info = await v2.beatmap.diff(beatmap_id).catch(er=>console.log(er));
                 console.log('saving beatmap');
                 fs.writeFileSync(path.join(__dirname, 'beatmaps', beatmap_id.toString() ), JSON.stringify(beatmap_info));
                 return beatmap_info;
@@ -166,7 +177,7 @@ const get_user_stats = (date) => {
         var stats_json = fs.readFileSync(path.join(__dirname, 'stats', date.toString() ));
         stats = JSON.parse(stats_json);
     } catch (e){
-        //console.log(e);
+        console.log(e);
     }
     return stats;
 }
@@ -260,7 +271,9 @@ const calculate_stats = (old_stats, date) => {
         new_stats.max_combo = 0;
         new_stats.max_stars = 0;
         new_stats.max_fcp = 0;
-        
+        new_stats.fcp_per_playcount = 0;
+        new_stats.fcp_per_playtime = 0;
+
         var fc_efficiency = [];
 
         for (let score_id of old_stats.scores_ids){
@@ -274,12 +287,13 @@ const calculate_stats = (old_stats, date) => {
             new_stats.total_pp += score_info.pp;
         }
 
-        new_stats.max_fcp = Math.max(...array.map(o => o.fc_efficiency));
-        new_stats.max_pp = Math.max(...array.map(o => o.pp));
-        new_stats.max_length = Math.max(...array.map(o => o.beatmap_length));
-        new_stats.max_combo = Math.max(...array.map(o => o.combo));
-        new_stats.max_stars = Math.max(...array.map(o => o.stars));
+        new_stats.max_fcp = Math.max(...scores_info.map(o => o.fc_efficiency));
+        new_stats.max_pp = Math.max(...scores_info.map(o => o.pp));
+        new_stats.max_length = Math.max(...scores_info.map(o => o.beatmap_length));
+        new_stats.max_combo = Math.max(...scores_info.map(o => o.combo));
+        new_stats.max_stars = Math.max(...scores_info.map(o => o.stars));
 
+        scores_info.sort((s1,s2)=>s2.fc_efficiency-s1.fc_efficiency);
         fc_efficiency.sort((v1,v2)=>v2-v1);
        
         for (let i in fc_efficiency){
@@ -295,6 +309,7 @@ const calculate_stats = (old_stats, date) => {
         new_stats.avg_length /= scores_length;
         new_stats.avg_accuracy /= scores_length;
 
+        new_stats.max_fcp = floor(new_stats.max_fcp);
         new_stats.fc_efficiency = floor(new_stats.fc_efficiency);
         new_stats.avg_stars = floor(new_stats.avg_stars);
         new_stats.avg_combo = floor(new_stats.avg_combo);
@@ -324,17 +339,21 @@ const get_daily_stats = async () => {
 
     daily_stats.profile_last_update = await get_user_info();
 
-    var new_scores = await v2.user.scores.category(user_id, 'recent', {mode: score_mode, limit: 100});
+    try{
+        var new_scores = await v2.user.scores.category(user_id, 'recent', {mode: score_mode, limit: 100}).catch(er=>console.log(er));
 
-    for (let new_score of new_scores){ 
-        if (today !== new Date(new_score.created_at).toJSON().slice(0, 10)) continue;
+        for (let new_score of new_scores){ 
+            if (today !== new Date(new_score.created_at).toJSON().slice(0, 10)) continue;
 
-        if (daily_stats.scores_ids.findIndex((val)=>val===new_score.id) === -1){
-            const score_info = await save_score_info(new_score);
-            if (score_info !== undefined){
-                daily_stats.scores_ids.push(new_score.id);
+            if (daily_stats.scores_ids.findIndex((val)=>val===new_score.id) === -1){
+                const score_info = await save_score_info(new_score);
+                if (score_info !== undefined){
+                    daily_stats.scores_ids.push(new_score.id);
+                }
             }
         }
+    } catch (er){
+        throw new Error(er);
     }
 
     var stats_and_scores = calculate_stats(daily_stats, today);
@@ -354,6 +373,12 @@ const get_daily_stats = async () => {
                 console.log('reading stats for', lastday);
                 var lastday_stats = fs.readFileSync(path.join(__dirname, 'stats', lastday.toString() ));
                 stats_and_scores.stats.lastday_stats = JSON.parse(lastday_stats);
+                console.log(stats_and_scores)
+                let current_playcount = stats_and_scores.stats.profile_last_update.playcount - stats_and_scores.stats.lastday_stats.profile_last_update.playcount;
+                let current_playtime = stats_and_scores.stats.profile_last_update.playtime - stats_and_scores.stats.lastday_stats.profile_last_update.playtime;
+                console.log(current_playcount, current_playtime, stats_and_scores.stats.scores_ids.length)
+                stats_and_scores.stats.fcp_per_playcount = stats_and_scores.stats.scores_ids.length / current_playcount;
+                stats_and_scores.stats.fcp_per_playtime = stats_and_scores.stats.scores_ids.length / Math.floor(current_playtime / 60);
             }
         }
     } catch (e){
@@ -413,7 +438,11 @@ const main = (async () => {
     });
 
     app.post('/get_daily_stats', async (req, res) => {
-        var daily_stats = await get_daily_stats();
+        try{
+            var daily_stats = await get_daily_stats();
+        } catch (e){
+            throw new Error(e);
+        }
         res.send(JSON.stringify(daily_stats));
     });  
    
