@@ -1,4 +1,6 @@
 body {
+    margin: 0;
+    padding: 0;
     background-color: #2a2226;
     color: #fefefe;
     font-family: Torus,Inter,"Helvetica Neue",Tahoma,Arial,"Hiragino Kaku Gothic ProN",Meiryo,"Microsoft YaHei","Apple SD Gothic Neo",sans-serif;
@@ -174,4 +176,53 @@ hr {
 .headers_title, .daily_title, .lastday_title {
     height: 25px;
     text-align: center;
+}
+
+.settings_button img{
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    z-index: 100;
+    right: 0;
+    float: right;
+    margin-right: 10px;
+    opacity: 0.8;
+}
+
+.settings_button img:hover{
+    opacity: 1;
+}
+
+.settings_body {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    width: 99%;
+    height: 99%;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+}
+.settings_content {
+    display: flex;
+    flex-direction: column;
+    background-color: #46393f;
+    border-radius: 10px;
+    width: 500px;
+    height: max-content;
+    margin: 0;
+    padding: 0;
+    margin: auto;
+    align-items: center;
+}
+
+.settings_options{
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+}
+
+.hidden {
+    display: none;
 }

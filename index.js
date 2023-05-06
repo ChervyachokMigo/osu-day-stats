@@ -30,6 +30,7 @@ const default_stats = {
     avg_combo: 0,
     avg_length: 0,
     avg_accuracy: 0,
+    avg_pp: 0,
     total_pp: 0,
     max_pp: 0,
     max_length: 0,
@@ -39,7 +40,34 @@ const default_stats = {
     fcp_per_playcount: 0,
     fcp_per_playtime: 0,
     scores_ids: []
-    
+}
+
+const default_settings = {
+    stats:{
+        efficiency: true,
+        total_pp: true,
+        avg_pp: true,
+        fc_count: true,
+        avg_stars: true,
+        avg_accuracy: true,
+        avg_combo: true,
+        avg_length: true,
+        max_fce: true,
+        max_pp: true,
+        max_combo: true,
+        max_length: true,
+        max_stars: true,
+        global_rank: true,
+        country_rank: true,
+        profile_pp: true,
+        profile_accuracy: true,
+        profile_hits: true,
+        profile_playcount: true,
+        profile_playtime: true,
+        fce_per_playtime: true,
+        fce_per_playcount: true
+    },
+    autoupdate: 0,
 }
 
 const check_dir = (dirname) => {
@@ -275,18 +303,25 @@ const calculate_stats = (old_stats, date) => {
         new_stats.max_fcp = 0;
         new_stats.fcp_per_playcount = 0;
         new_stats.fcp_per_playtime = 0;
+        new_stats.avg_pp = 0;
 
         var fc_efficiency = [];
 
+        var null_pp_count = 0;
         for (let score_id of old_stats.scores_ids){
             const score_info = read_score(score_id);
             scores_info.push(score_info);
             fc_efficiency.push(score_info.fc_efficiency);
+            if (score_info.pp === 0 || score_info.pp === null ){
+                null_pp_count++;
+                score_info.pp = 0;
+            }
             new_stats.avg_stars += score_info.stars;
             new_stats.avg_combo += score_info.combo;
             new_stats.avg_length += score_info.beatmap_length;
             new_stats.avg_accuracy += score_info.accuracy*100;
             new_stats.total_pp += score_info.pp;
+            new_stats.avg_pp += score_info.pp;
         }
 
         new_stats.max_fcp = Math.max(...scores_info.map(o => o.fc_efficiency));
@@ -306,6 +341,7 @@ const calculate_stats = (old_stats, date) => {
             new_stats.fc_efficiency += fc_efficiency[i] * weight;
         }
 
+        new_stats.avg_pp /= (scores_length - null_pp_count);
         new_stats.avg_combo /= scores_length;
         new_stats.avg_stars /= scores_length;
         new_stats.avg_length /= scores_length;
@@ -318,6 +354,7 @@ const calculate_stats = (old_stats, date) => {
         new_stats.avg_length = floor(new_stats.avg_length,0);
         new_stats.avg_accuracy = floor(new_stats.avg_accuracy);
         new_stats.total_pp = floor(new_stats.total_pp);
+        new_stats.avg_pp = floor(new_stats.avg_pp);
 
         return { stats: new_stats, scores: scores_info};
 
@@ -410,6 +447,31 @@ const get_daily_stats = async () => {
     return stats_and_scores;
 }
 
+const get_settings = () => {
+    var settings;
+    try {
+        settings = fs.readFileSync(path.join(__dirname, 'settings.json'));
+        settings = JSON.parse(settings);
+        return settings;
+    } catch (e) {
+        if (e.code === 'ENOENT'){
+            settings = Object.assign ({}, default_settings);
+            save_settings(settings);
+            return settings;
+        } else {
+            throw new Error(e);
+        }
+    }
+}
+
+const save_settings = (settings) => {
+    try {
+        fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings));
+    } catch (e2) {
+        throw new Error(e2);
+    }
+}
+
 const main = (async () => {
     console.log('application started');
     if ( ! check_credentials()){
@@ -438,6 +500,7 @@ const main = (async () => {
     PathListener(app, '/favicon.ico', 'favicon.png');
     PathListener(app, '/play.png', 'play.png');
     PathListener(app, '/pause.png', 'pause.png');
+    PathListener(app, '/settings.png', 'settings.png');
 
     app.get('/score', (req, res) => {
         if (req.query === undefined || req.query.day === undefined){
@@ -456,10 +519,23 @@ const main = (async () => {
     });
 
     app.post('/get_daily_stats', async (req, res) => {
-        
         var daily_stats = await get_daily_stats();
-       
         res.send(JSON.stringify(daily_stats));
-    });  
+    });
+
+    app.post('/get_settings', (req, res)=>{
+        var settings = get_settings();
+        res.send(JSON.stringify(settings));
+    });
+
+    app.post('/save_settings', (req, res)=>{
+        var settings_stats_arr = JSON.parse(req.body.stats);
+        var settings = {
+            stats: settings_stats_arr,
+            autoupdate: req.body.autoupdate
+        };
+        
+        save_settings(settings);
+    });
    
 })();
