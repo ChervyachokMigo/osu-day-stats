@@ -89,8 +89,8 @@
                     <div class="lastday_max_fcp">${lastday_stats? make_sign( daily.max_fcp - lastday_stats.max_fcp ):''}</div>
                     <div class="lastday_max_pp">${lastday_stats? make_sign( Math.floor(daily.max_pp - lastday_stats.max_pp) ) + ' pp':''}</div>
                     <div class="lastday_max_combo">${lastday_stats? make_sign( daily.max_combo - lastday_stats.max_combo ) + 'x':''}</div>
-                    <div class="lastday_max_length">${lastday_stats? make_sign( format_seconds(daily.max_length - lastday_stats.max_length) ):''}</div>
-                    <div class="lastday_max_stars">${lastday_stats? make_sign( daily.max_stars - lastday_stats.max_stars ) + ' ★':''}</div>
+                    <div class="lastday_max_length">${lastday_stats? make_sign( daily.max_length - lastday_stats.max_length, true ) + '' + format_seconds( (Number(daily.max_length) - Number(lastday_stats.max_length))):''}</div>
+                    <div class="lastday_max_stars">${lastday_stats? make_sign( (daily.max_stars - lastday_stats.max_stars).toFixed(2) ) + ' ★':''}</div>
                     <div class="lastday_profile_rank">${lastday_stats? make_sign(-(daily.profile_last_update.rank - lastday_stats.profile_last_update.rank)):''}</div>
                     <div class="lastday_profile_country_rank">${lastday_stats? make_sign(-(daily.profile_last_update.country_rank - lastday_stats.profile_last_update.country_rank)):''}</div>
                     <div class="lastday_profile_pp">${lastday_stats? make_sign(Math.floor(daily.profile_last_update.pp - lastday_stats.profile_last_update.pp)):''} pp</div>

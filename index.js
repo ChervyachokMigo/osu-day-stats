@@ -400,6 +400,13 @@ const get_daily_stats = async () => {
         }
     }
 
+    try{
+        console.log('saving daily stats for', today);
+        fs.writeFileSync(path.join(__dirname, 'stats', today), JSON.stringify(stats_and_scores.stats));
+    } catch (e){
+        console.error(e);
+    }
+
     return stats_and_scores;
 }
 
