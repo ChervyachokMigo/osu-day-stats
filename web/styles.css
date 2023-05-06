@@ -102,7 +102,7 @@ body {
 
 .daily {
     display: none;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: space-between;
     margin-bottom: 15px;
     padding: 15px;
@@ -117,21 +117,31 @@ h2 {
     align-self: center;
     margin: auto;
     font-size: xx-large;
+    width: max-content;
 }
 
 .topic {
     padding-top: 15px;
+    padding-right: 25px;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
     margin: auto;
     font-size: larger;
 }
 
 .today_daily {
-    padding: 0px 25px 0px 25px;
+    padding-top: 15px;
+    padding-right: 25px;
     color: #f0b89c;
     text-align: right;
+    display: flex;
+    flex-direction: column;
+    font-size: larger;
+}
+hr {
+    border: 1px solid #ccc;
+    width: 100%;
 }
 
 .daily_title {
@@ -151,4 +161,17 @@ h2 {
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+}
+
+.lastday_stats {
+    font-size: larger;
+    display: flex;
+    flex-direction: column;
+    padding-top: 15px;
+    padding-right: 25px;
+}
+
+.headers_title, .daily_title, .lastday_title {
+    height: 25px;
+    text-align: center;
 }

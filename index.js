@@ -111,8 +111,8 @@ const get_user_id = async () => {
     } catch (e){
         if (e.code === 'ENOENT') {
             try {
-                console.log(user_id, 'not found', 'get it from bancho');
-                const user_info =  await v2.user.me.details('osu').catch(er=>console.log(er));
+                console.log('user_id', 'not found', 'get it from bancho');
+                const user_info =  await v2.user.me.details('osu');
                 try{
                     console.log('saving user id');
                     fs.writeFileSync( path.join(__dirname, 'user_id' ), user_info.id.toString() );
@@ -124,6 +124,8 @@ const get_user_id = async () => {
             } catch (e1){
                 throw new Error(e1);
             }
+        } else {
+            throw new Error(e);
         }
     }
 }
@@ -131,7 +133,7 @@ const get_user_id = async () => {
 const get_user_info = async () => {
     try {
         console.log('reading user profile from bancho')
-        const user_info =  await v2.user.me.details('osu').catch(er=>console.log(er));
+        const user_info =  await v2.user.me.details('osu');
         return {
             rank: user_info.statistics.global_rank, 
             country_rank: user_info.statistics.country_rank,
@@ -156,7 +158,7 @@ const get_beatmap_info = async (beatmap_id) => {
         if (e.code === 'ENOENT') {
             try{
                 console.log('beatmap not found', beatmap_id, 'get it from bancho');
-                const beatmap_info = await v2.beatmap.diff(beatmap_id).catch(er=>console.log(er));
+                const beatmap_info = await v2.beatmap.diff(beatmap_id);
                 console.log('saving beatmap');
                 fs.writeFileSync(path.join(__dirname, 'beatmaps', beatmap_id.toString() ), JSON.stringify(beatmap_info));
                 return beatmap_info;
@@ -177,7 +179,7 @@ const get_user_stats = (date) => {
         var stats_json = fs.readFileSync(path.join(__dirname, 'stats', date.toString() ));
         stats = JSON.parse(stats_json);
     } catch (e){
-        console.log(e);
+        console.log('nothing to read', 'set defaults state');
     }
     return stats;
 }
@@ -340,7 +342,7 @@ const get_daily_stats = async () => {
     daily_stats.profile_last_update = await get_user_info();
 
     try{
-        var new_scores = await v2.user.scores.category(user_id, 'recent', {mode: score_mode, limit: 100}).catch(er=>console.log(er));
+        var new_scores = await v2.user.scores.category(user_id, 'recent', {mode: score_mode, limit: 100});
 
         for (let new_score of new_scores){ 
             if (today !== new Date(new_score.created_at).toJSON().slice(0, 10)) continue;
@@ -373,12 +375,21 @@ const get_daily_stats = async () => {
                 console.log('reading stats for', lastday);
                 var lastday_stats = fs.readFileSync(path.join(__dirname, 'stats', lastday.toString() ));
                 stats_and_scores.stats.lastday_stats = JSON.parse(lastday_stats);
-                console.log(stats_and_scores)
+
                 let current_playcount = stats_and_scores.stats.profile_last_update.playcount - stats_and_scores.stats.lastday_stats.profile_last_update.playcount;
                 let current_playtime = stats_and_scores.stats.profile_last_update.playtime - stats_and_scores.stats.lastday_stats.profile_last_update.playtime;
-                console.log(current_playcount, current_playtime, stats_and_scores.stats.scores_ids.length)
-                stats_and_scores.stats.fcp_per_playcount = stats_and_scores.stats.scores_ids.length / current_playcount;
-                stats_and_scores.stats.fcp_per_playtime = stats_and_scores.stats.scores_ids.length / Math.floor(current_playtime / 60);
+
+                if (current_playcount>0){
+                    stats_and_scores.stats.fcp_per_playcount = stats_and_scores.stats.scores_ids.length / current_playcount;
+                } else {
+                    stats_and_scores.stats.fcp_per_playcount = 0;
+                }
+               
+                if (current_playtime>0){
+                    stats_and_scores.stats.fcp_per_playtime = stats_and_scores.stats.scores_ids.length / Math.floor(current_playtime / 60);
+                } else {
+                    stats_and_scores.stats.fcp_per_playtime = 0;
+                }
             }
         }
     } catch (e){
@@ -438,11 +449,9 @@ const main = (async () => {
     });
 
     app.post('/get_daily_stats', async (req, res) => {
-        try{
-            var daily_stats = await get_daily_stats();
-        } catch (e){
-            throw new Error(e);
-        }
+        
+        var daily_stats = await get_daily_stats();
+       
         res.send(JSON.stringify(daily_stats));
     });  
    

@@ -19,12 +19,10 @@
             daily_count = stats.scores_ids.length;
             lastday_count = lastday_stats?lastday_stats.scores_ids.length:0;
 
-            daily_playtime = daily.profile_last_update.playtime - lastday_stats.profile_last_update.playtime;
+            daily_playtime = daily.profile_last_update.playtime - (lastday_stats !== undefined?lastday_stats.profile_last_update.playtime:daily.profile_last_update.playtime);
 
             $('.daily').empty();
-            $('.daily').append(`
-            <h2>Daily stats</h2>
-            <div class="topic">
+            $('.daily').append(`<div class="topic">
                 <div class="daily_headers">
                     <div class="headers_title"><B>Title</B></div>
                     <hr>
@@ -50,8 +48,8 @@
                     <div class="headers_profile_playtime"><B>Total playtime</B></div>
                     <div class="headers_fcp_per_playtime"><B>FC per minute</B></div>
                     <div class="headers_fcp_per_playcount"><B>FC per playcount</B></div>
-                </div>
-                <div class="today_daily">
+                </div>`);
+            $('.daily').append(`<div class="today_daily">
                     <div class="daily_title"><B>Today</B></div>
                     <hr>
                     <div class="daily_efficiency">${daily.fc_efficiency}</div>
@@ -74,10 +72,10 @@
                     <div class="daily_profile_hits">${daily.profile_last_update.hits}</div>
                     <div class="daily_profile_playcount">${daily.profile_last_update.playcount}</div>
                     <div class="daily_profile_playtime">${format_date(daily.profile_last_update.playtime)}</div>
-                    <div class="daily_fcp_per_playtime">${daily.fcp_per_playtime.toFixed(2)}</div>
-                    <div class="daily_fcp_per_playcount">${daily.fcp_per_playcount.toFixed(2)}</div>
-                </div>
-                <div class="lastday_stats">
+                    <div class="daily_fcp_per_playtime">${(daily.fcp_per_playtime).toFixed(2)}</div>
+                    <div class="daily_fcp_per_playcount">${(daily.fcp_per_playcount).toFixed(2)}</div>
+                </div>`);
+            lastday_stats?$('.daily').append(`<div class="lastday_stats">
                     <div class="lastday_title"><B>Lastday compare</B></div>
                     <hr>
                     <div class="lastday_efficiency">${lastday_stats? ''+ make_sign((Number(daily.fc_efficiency) - Number(lastday_stats.fc_efficiency)).toFixed(2)):''}</div>
@@ -102,8 +100,8 @@
                     <div class="lastday_profile_playtime">${lastday_stats? make_sign(format_date_2(daily_playtime)):''}</div>
                     <div class="lastday_fcp_per_playtime">${lastday_stats? make_sign((daily.fcp_per_playtime - lastday_stats.fcp_per_playtime).toFixed(2)):''}</div>
                     <div class="lastday_fcp_per_playcount">${lastday_stats? make_sign((daily.fcp_per_playcount - lastday_stats.fcp_per_playcount).toFixed(2)):''}</div>
-                </div>
-            </div>`);
+                </div>`):0;
+            $('.daily').append(`</div>`);
             
             $('.all_scores').empty();
             for (score of scores_info){
@@ -173,6 +171,9 @@
     function format_date_2(date_number){
         const minutes = Math.trunc(date_number / 60);
         const hours = Math.trunc(minutes / 60);
+        if (minutes < 1 && hours < 1){
+            return '0m';
+        }
         return `${hours>0?hours + 'h ':''}${minutes>0? (minutes % 60) + 'm':''}`;
     }
 
@@ -211,6 +212,7 @@
 </head>
 
 <body>
+    <div class="header"><h2>Daily stats</h2></div>
     <div class="daily"></div>
     <div class="all_scores">
         <div class="loading">loading...</div>
