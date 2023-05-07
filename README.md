@@ -1,3 +1,7 @@
+<h1> Скриншот</h1>
+
+<img src="https://i.imgur.com/wmSQGVH.png" width="500">
+
 <h1>1. Установка</h1>
 
 1.1. **Устанавливаем** `node.js 18.16.0 LTS` с <a href="https://nodejs.org/en">официального сайта</a>
