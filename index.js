@@ -513,6 +513,7 @@ const get_daily_stats = async () => {
 }
 
 const get_settings = () => {
+    console.log('getting settings')
     var settings;
     try {
         settings = fs.readFileSync(path.join(__dirname, 'settings.json'));
@@ -530,6 +531,7 @@ const get_settings = () => {
 }
 
 const save_settings = (settings) => {
+    console.log('saving settings');
     try {
         fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings));
     } catch (e2) {
