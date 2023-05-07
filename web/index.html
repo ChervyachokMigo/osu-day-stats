@@ -4,6 +4,7 @@
     <meta charset="utf-8">
 
     <script src="jquery.min.js"></script>
+    <script src="html2canvas.min.js"></script>
 
     <script>
 
@@ -102,6 +103,7 @@
                     <div class="lastday_fce_per_playtime">${lastday_stats? make_sign((daily.fcp_per_playtime - lastday_stats.fcp_per_playtime).toFixed(2)):''}</div>
                     <div class="lastday_fce_per_playcount">${lastday_stats? make_sign((daily.fcp_per_playcount - lastday_stats.fcp_per_playcount).toFixed(2)):''}</div>
                 </div>`):0;
+            $('.daily').append(`<div class="save_stats"><img id="save stats" src="/save_screen.png" onclick="save_screen()"></div>`);
             $('.daily').append(`</div>`);
 
             $('.all_scores').empty();
@@ -113,8 +115,7 @@
             $.post('/get_settings', (settings_json)=>{
                 var settings = JSON.parse(settings_json);
                 var settings_stats = settings.stats;
-                console.log(settings_stats);
-                
+                var settings_autoupdate = settings.autoupdate;                
                 for (let stat in settings_stats){
                     let name = stat;
                     let checked = settings_stats[stat];
@@ -131,6 +132,16 @@
                         }
                     }
                     
+                }
+                $(`#autoupdate option[value="${settings_autoupdate}"]`).prop('selected', true);
+                switch(settings_autoupdate){
+                    case '0':
+                        break;
+                    case '5':
+                    case '15':
+                    case '30':
+                        setTimeout(refreshPage, Number(settings_autoupdate) * 60000);
+                        break;
                 }
             })
 
@@ -152,7 +163,10 @@
                     <div class="score_title"><a href=${score.beatmap_url}>${score.beatmap_title}</a></div>
                     <hr>
                     <div class="score_stats">
+                        <div class="score_beatmap_status"><b>Status:</b> ${score.beatmap_status}</div>
                         <div class="score_efficiency"><b>Efficiency:</b> ${(score.fc_efficiency).toFixed(2)}</div>
+                        <div class="score_mods"><b>Mods:</b> ${score.mods.join('+')}</div>
+                        <div class="score_mods_bonus"><b>Bonus mods:</b> ${(1 + score.mods_bonus).toFixed(2)}</div>
                         <div class="beatmap_length"><b>PP: </b> ${score.pp}</div>
                         <div class="score_combo"><b>Combo:</b> ${score.combo}/${score.max_combo}x</div>
                         <div class="score_accuracy"><b>Accuracy:</b> ${(score.accuracy*100).toFixed(2)}%</div>
@@ -240,13 +254,33 @@
         $('.settings_options input').each( (i, el) => {
             settings_stats[$(el).prop('name')] = $(el).prop('checked');
         })
-        $.post('/save_settings', {stats: JSON.stringify(settings_stats), autoupdate: 5});
+        var settings_autoupdate = $('#autoupdate').val();
+        $.post('/save_settings', {stats: JSON.stringify(settings_stats), autoupdate: settings_autoupdate }).done( (data) => {
+            refreshPage();
+        });
+    }
+
+    function refreshPage() {
+        window.location = location.href;
+    }
+
+    function save_screen() {
+        $('.save_stats').hide();
+        html2canvas(document.getElementById('daily_stats')).then(function(canvas) {
+            canvas.toDataURL('image/png').replace("image/png", "image/octet-stream");
+            const link = document.createElement('a');
+            link.download = ( new Date().toJSON().slice(0, 10) )+'.png';
+            link.href = canvas.toDataURL();
+            link.click();
+            link.delete;
+        });
+        $('.save_stats').show();
     }
 
     </script>
 
     <link rel="stylesheet" href="styles.css">
-    <title>Recent scores</title>
+    <title>Osu daily stats</title>
 </head>
 
 <body>
@@ -255,6 +289,12 @@
     </div>
     <div class="settings_body hidden">
         <div class="settings_content">
+            <div class="settings_title">
+                <h2>Settings</h2>
+            </div>
+            <div class="settings_title_options">
+                <h3>Stats visibility</h3>
+            </div>
             <div class="settings_options">
                 <div><input type="checkbox" id="efficiency" name="efficiency" checked><label for="efficiency">FC Efficiency</label></div>
                 <div><input type="checkbox" id="total_pp" name="total_pp" checked><label for="total_pp">Total PP</label></div>
@@ -279,13 +319,22 @@
                 <div><input type="checkbox" id="fce_per_playtime" name="fce_per_playtime" checked><label for="fce_per_playtime">FC per minute</label></div>
                 <div><input type="checkbox" id="fce_per_playcount" name="fce_per_playcount" checked><label for="fce_per_playcount">FC per playcount</label></div>
             </div>
+            <div class="settings_autoupdate">
+                <label for="autoupdate">Autoupdate:</label>
+                <select id="autoupdate" name="autoupdate">
+                    <option value="0">Manual</option>
+                    <option value="5">5 mins</option>
+                    <option value="15">15 mins</option>
+                    <option value="30">30 mins</option>
+                </select>
+            </div>
             <div class="settings_submit">
                 <button type="button" value="Save" onclick="saveSettings()">Save</button>
             </div>
         </div>
     </div>
     <div class="header"><h2>Daily stats</h2></div>
-    <div class="daily"></div>
+    <div class="daily" id="daily_stats"></div>
     <div class="all_scores">
         <div class="loading">loading...</div>
     </div>

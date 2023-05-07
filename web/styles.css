@@ -55,7 +55,7 @@ body {
 
 .score_bg_picture img {
     border-radius: 10px;
-    width: 175px;
+    width: 230px;
 }
 
 .score_bg_preview_play {
@@ -94,11 +94,7 @@ body {
     font-weight: bold;
     margin-bottom: 5px;
 }
-.score_efficiency,
-.score_combo,
-.score_accuracy,
-.beatmap_stars,
-.beatmap_length {
+.score_stats div {
     margin-bottom: 5px;
 }
 
@@ -112,6 +108,7 @@ body {
     border-radius: 10px;
     width: max-content;
     margin: 15px auto 15px auto;
+    position: relative;
 }
 
 h2 {
@@ -194,6 +191,7 @@ hr {
 }
 
 .settings_body {
+    z-index: 99;
     display: flex;
     flex-direction: column;
     position: absolute;
@@ -209,10 +207,13 @@ hr {
     flex-direction: column;
     background-color: #46393f;
     border-radius: 10px;
-    width: 500px;
+    border-style: outset;
+    border-color: #2a2226;
+    border-width: thin;
+    width: max-content;
     height: max-content;
     margin: 0;
-    padding: 0;
+    padding: 15px 35px;
     margin: auto;
     align-items: center;
 }
@@ -220,9 +221,46 @@ hr {
 .settings_options{
     display: flex;
     flex-direction: column;
-    padding: 15px;
+    padding-bottom: 15px;
 }
 
 .hidden {
     display: none;
+}
+
+.settings_submit button {
+    background-color: #008CBA;
+    border-radius: 10px;
+    border-width: 0;
+    font-size: larger;
+    padding: 3px 10px;
+    color: white;
+}
+
+.settings_submit button:hover {
+    background-color: #2dc0f1;
+}
+
+.settings_title, .settings_autoupdate {
+    padding-bottom: 15px;
+}
+
+.settings_title_options h3 {
+    margin: 0;
+    padding-bottom: 15px;
+}
+
+.save_stats {
+    position: absolute;
+    top: -25px;
+    right: -25px;
+}
+
+.save_stats img {
+    width: 50px;
+    height: 50px;
+    opacity: 0.8;
+}
+.save_stats img:hover {
+    opacity: 1;
 }

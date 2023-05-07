@@ -1,28 +1,57 @@
-// screen stats, select day, настройки: выбор статов, выбор сортировки
+//## CONSTANTES ##//////////////////////////
+
+//Режим игры
+const score_mode = 'osu';
+
+//сколько процентов от максимального комбо скор считается за FC
+const combo_is_fc = 0.98; //%
+
+//Значимость длины карты от 0 до 1 (0 - 100%)
+const length_significance = 0.1;
+
+//Визуальный параметр, чем выше тем меньше число эфективности
+const efficiency_multiplier = 5;
+
+//Коэфициент весов скоров, влияет на суммарный показатель эфективности
+//0.14285714 - считает первые 7 скоров в порядке убывания эфективности
+//1 место: 1
+//2 место: 1 - 0.14285714
+//3 место: 1 - 0.28571428
+//..
+//7 место: 1 - 0.99999998
+//следующие места не учитываются (с этим коэфициентом)
+//если нужно увеличить количество значимых скоров - уменьшите эту величину
+const weight_multiplier = 0.14285714;
+
+//бонусы эфективности за моды
+const double_time_bonus = 0.20;
+const flashhlight_bonus = 0.25;
+const hardrock_bonus = 0.12;
+const hidden_bonus = 0.06;
+const easy_bonus = -0.12;
+const spinout_bonus = -0.03;
+
+
+///##[CODE]##////////////////////////////////
 
 const fs = require('fs');
 const path = require('path');
-const { v2, auth } = require('osu-api-extended')
+const { v2, auth } = require('osu-api-extended');
+
+const { ModsIntToText } = require('./mods.js');
 
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 
-const HTTP_PORT = 10577;
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+const HTTP_PORT = 10577;
 const webserver_dir = 'web';
 
 const osu_login = process.env.osu_login;
 const osu_password = process.env.osu_password;
-
-const combo_is_fc = 0.98; //%
-const score_mode = 'osu';
-const length_significance = 0.1; //0-1
-const efficiency_multiplier = 5;
-const weight_multiplier = 0.14285714;
 
 const default_stats = {
     fc_efficiency: 0,
@@ -232,6 +261,34 @@ const save_score_info = async (score) => {
                 stars * (1-length_significance))) / 
                     efficiency_multiplier );
         
+        let mods_bonus = 0;
+        for (let mod of score.mods){
+            switch (mod) {
+                case 'Flashlight':
+                    mods_bonus += flashhlight_bonus;
+                    break;
+                case 'DoubleTime':
+                    mods_bonus += double_time_bonus;
+                    break;
+                case 'HardRock':
+                    mods_bonus += hardrock_bonus;
+                    break;  
+                case 'Hidden':
+                    mods_bonus += hidden_bonus;
+                    break;
+                case 'Easy':
+                    mods_bonus += easy_bonus;
+                    break;
+                case 'SpunOut':
+                    mods_bonus += spinout_bonus;
+                    break;
+            }
+        }
+
+        if (pp === 0 || pp === null ){
+            pp = 0;
+        }
+
         let score_fc_info = {
             score_id,
             beatmap_title: `${beatmap_info.beatmapset.artist} - ${beatmap_info.beatmapset.title} [${beatmap_info.version}]`,
@@ -245,7 +302,10 @@ const save_score_info = async (score) => {
             stars,
             beatmap_length,
             fc_efficiency,
-            pp
+            pp,
+            beatmap_status: beatmap_info.status,
+            mods: ModsIntToText(score.mode_int),
+            mods_bonus
         }
 
         try{
@@ -308,14 +368,19 @@ const calculate_stats = (old_stats, date) => {
         var fc_efficiency = [];
 
         var null_pp_count = 0;
+
         for (let score_id of old_stats.scores_ids){
-            const score_info = read_score(score_id);
-            scores_info.push(score_info);
-            fc_efficiency.push(score_info.fc_efficiency);
+            var score_info = read_score(score_id);
+
             if (score_info.pp === 0 || score_info.pp === null ){
                 null_pp_count++;
                 score_info.pp = 0;
             }
+            scores_info.push(score_info);
+            
+            let fce = score_info.fc_efficiency * (1 + score_info.mods_bonus);
+            fc_efficiency.push(fce);
+
             new_stats.avg_stars += score_info.stars;
             new_stats.avg_combo += score_info.combo;
             new_stats.avg_length += score_info.beatmap_length;
@@ -501,7 +566,9 @@ const main = (async () => {
     PathListener(app, '/play.png', 'play.png');
     PathListener(app, '/pause.png', 'pause.png');
     PathListener(app, '/settings.png', 'settings.png');
-
+    PathListener(app, '/html2canvas.min.js', 'html2canvas.min.js');
+    PathListener(app, '/save_screen.png', 'save_screen.png');
+    
     app.get('/score', (req, res) => {
         if (req.query === undefined || req.query.day === undefined){
             res.send('error');
@@ -536,6 +603,7 @@ const main = (async () => {
         };
         
         save_settings(settings);
+        res.send ('OK');
     });
    
 })();
