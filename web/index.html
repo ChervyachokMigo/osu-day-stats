@@ -11,7 +11,6 @@
     $(document).ready(function(){
         $.post('/get_daily_stats', (stats_json)=> {
             stats_and_scores = JSON.parse(stats_json);
-            console.log(stats_and_scores)
             stats = stats_and_scores.stats;
             scores_info = stats_and_scores.scores;
 
@@ -21,7 +20,7 @@
             daily_count = stats.scores_ids.length;
             lastday_count = lastday_stats?lastday_stats.scores_ids.length:0;
 
-            daily_playtime = daily.profile_last_update.playtime - (lastday_stats !== undefined?lastday_stats.profile_last_update.playtime:daily.profile_last_update.playtime);
+            daily_playtime = Math.abs(daily.profile_last_update.playtime - (lastday_stats !== undefined?lastday_stats.profile_last_update.playtime:daily.profile_last_update.playtime));
 
             $('.daily').empty();
             $('.daily').append(`<div class="topic">
@@ -54,55 +53,86 @@
             $('.daily').append(`<div class="today_daily">
                     <div class="daily_title"><B>Today</B></div>
                     <hr>
-                    <div class="daily_efficiency">${daily.fc_efficiency}</div>
-                    <div class="daily_total_pp">${Math.floor(daily.total_pp)} pp</div>
-                    <div class="daily_avg_pp">${Math.floor(daily.avg_pp)} pp</div>
+                    <div class="daily_efficiency">${floor(daily.fc_efficiency, 3)}</div>
+                    <div class="daily_total_pp">${floor(daily.total_pp, 0)} pp</div>
+                    <div class="daily_avg_pp">${floor(daily.avg_pp, 0)} pp</div>
                     <div class="daily_fc_count">${daily_count}</div>
-                    <div class="daily_avg_stars">${daily.avg_stars} ★</div>
-                    <div class="daily_avg_accuracy">${daily.avg_accuracy}%</div>
-                    <div class="daily_avg_combo">${Number(daily.avg_combo).toFixed(0)}x</div>
+                    <div class="daily_avg_stars">${floor(daily.avg_stars, 2)} ★</div>
+                    <div class="daily_avg_accuracy">${floor(daily.avg_accuracy, 2)}%</div>
+                    <div class="daily_avg_combo">${ floor(daily.avg_combo, 0) }x</div>
                     <div class="daily_avg_length">${format_seconds(daily.avg_length)}</div>
-                    <div class="daily_max_fce">${daily.max_fcp}</div>
-                    <div class="daily_max_pp">${Math.floor(daily.max_pp)} pp</div>
-                    <div class="daily_max_combo">${daily.max_combo}x</div>
+                    <div class="daily_max_fce">${floor(daily.max_fcp, 3)}</div>
+                    <div class="daily_max_pp">${floor(daily.max_pp, 0)} pp</div>
+                    <div class="daily_max_combo">${floor(daily.max_combo, 0)}x</div>
                     <div class="daily_max_length">${format_seconds(daily.max_length)}</div>
-                    <div class="daily_max_stars">${daily.max_stars} ★</div>
+                    <div class="daily_max_stars">${floor(daily.max_stars, 2)} ★</div>
                     <div class="daily_global_rank">#${daily.profile_last_update.rank}</div>
                     <div class="daily_country_rank">#${daily.profile_last_update.country_rank}</div>
-                    <div class="daily_profile_pp">${Math.floor(daily.profile_last_update.pp)} pp</div>
-                    <div class="daily_profile_accuracy">${daily.profile_last_update.accuracy.toFixed(2)}%</div>
+                    <div class="daily_profile_pp">${floor(daily.profile_last_update.pp, 0)} pp</div>
+                    <div class="daily_profile_accuracy">${floor(daily.profile_last_update.accuracy, 2)}%</div>
                     <div class="daily_profile_hits">${daily.profile_last_update.hits}</div>
                     <div class="daily_profile_playcount">${daily.profile_last_update.playcount}</div>
                     <div class="daily_profile_playtime">${format_date(daily.profile_last_update.playtime)}</div>
-                    <div class="daily_fce_per_playtime">${(daily.fcp_per_playtime).toFixed(2)}</div>
-                    <div class="daily_fce_per_playcount">${(daily.fcp_per_playcount).toFixed(2)}</div>
+                    <div class="daily_fce_per_playtime">${floor(daily.fcp_per_playtime, 3)}</div>
+                    <div class="daily_fce_per_playcount">${floor(daily.fcp_per_playcount, 3)}</div>
                 </div>`);
-            lastday_stats?$('.daily').append(`<div class="lastday_stats">
-                    <div class="lastday_title"><B>Lastday compare</B></div>
-                    <hr>
-                    <div class="lastday_efficiency">${lastday_stats? ''+ make_sign((Number(daily.fc_efficiency) - Number(lastday_stats.fc_efficiency)).toFixed(2)):''}</div>
-                    <div class="lastday_total_pp">${lastday_stats? ''+ make_sign((Number(daily.total_pp) - Number(lastday_stats.total_pp)).toFixed(2)) + ' pp':''}</div>
-                    <div class="lastday_avg_pp">${lastday_stats? make_sign( Math.floor(Number(daily.avg_pp - lastday_stats.avg_pp)) ) + ' pp':''}</div>
-                    <div class="lastday_fc_count">${lastday_stats? ''+ make_sign((Number(daily_count) - Number(lastday_count)).toFixed(0)):''}</div>
-                    <div class="lastday_avg_stars">${lastday_stats? ''+ make_sign((Number(daily.avg_stars) - Number(lastday_stats.avg_stars)).toFixed(2)) + ' ★':''}</div>
-                    <div class="lastday_avg_accuracy">${lastday_stats? ''+ make_sign((Number(daily.avg_accuracy) - Number(lastday_stats.avg_accuracy)).toFixed(2)) + '%':''}</div>
-                    <div class="lastday_avg_combo">${lastday_stats? ''+ make_sign(Number((Number(daily.avg_combo) - Number(lastday_stats.avg_combo))).toFixed(0)) + 'x':''}</div>
-                    <div class="lastday_avg_length">${lastday_stats? make_sign(Number(daily.avg_length) - Number(lastday_stats.avg_length), true) + ''+ format_seconds((Number(daily.avg_length) - Number(lastday_stats.avg_length))):''}</div>
-                    <div class="lastday_max_fce">${lastday_stats? make_sign( (daily.max_fcp - lastday_stats.max_fcp).toFixed(2) ):''}</div>
-                    <div class="lastday_max_pp">${lastday_stats? make_sign( Math.floor(daily.max_pp - lastday_stats.max_pp) ) + ' pp':''}</div>
-                    <div class="lastday_max_combo">${lastday_stats? make_sign( daily.max_combo - lastday_stats.max_combo ) + 'x':''}</div>
-                    <div class="lastday_max_length">${lastday_stats? make_sign( daily.max_length - lastday_stats.max_length, true ) + '' + format_seconds( (Number(daily.max_length) - Number(lastday_stats.max_length))):''}</div>
-                    <div class="lastday_max_stars">${lastday_stats? make_sign( (daily.max_stars - lastday_stats.max_stars).toFixed(2) ) + ' ★':''}</div>
-                    <div class="lastday_global_rank">${lastday_stats? make_sign(-(daily.profile_last_update.rank - lastday_stats.profile_last_update.rank)):''}</div>
-                    <div class="lastday_country_rank">${lastday_stats? make_sign(-(daily.profile_last_update.country_rank - lastday_stats.profile_last_update.country_rank)):''}</div>
-                    <div class="lastday_profile_pp">${lastday_stats? make_sign(Math.floor(daily.profile_last_update.pp - lastday_stats.profile_last_update.pp)):''} pp</div>
-                    <div class="lastday_profile_accuracy">${lastday_stats? make_sign( (daily.profile_last_update.accuracy - lastday_stats.profile_last_update.accuracy).toFixed(2) ):''}%</div>
-                    <div class="lastday_profile_hits">${lastday_stats? make_sign(daily.profile_last_update.hits - lastday_stats.profile_last_update.hits):''}</div>
-                    <div class="lastday_profile_playcount">${lastday_stats? make_sign(daily.profile_last_update.playcount - lastday_stats.profile_last_update.playcount):''}</div>
-                    <div class="lastday_profile_playtime">${lastday_stats? make_sign(format_date_2(daily_playtime)):''}</div>
-                    <div class="lastday_fce_per_playtime">${lastday_stats? make_sign((daily.fcp_per_playtime - lastday_stats.fcp_per_playtime).toFixed(2)):''}</div>
-                    <div class="lastday_fce_per_playcount">${lastday_stats? make_sign((daily.fcp_per_playcount - lastday_stats.fcp_per_playcount).toFixed(2)):''}</div>
-                </div>`):0;
+            if (lastday_stats){
+                let lastday_efficiency =  sign( floor(daily.fc_efficiency - lastday_stats.fc_efficiency, 3) );
+                let lastday_total_pp = sign( floor(daily.total_pp - lastday_stats.total_pp, 0) ) + ' pp';
+                let lastday_avg_pp = sign( floor(daily.avg_pp - lastday_stats.avg_pp, 0) ) + ' pp';
+                let lastday_fc_count = sign( daily_count - lastday_count );
+                let lastday_avg_stars = sign( floor(daily.avg_stars - lastday_stats.avg_stars, 2) ) + ' ★';
+                let lastday_avg_accuracy = sign( floor(daily.avg_accuracy - lastday_stats.avg_accuracy, 2) ) + '%';
+                let lastday_avg_combo = sign( floor(daily.avg_combo - lastday_stats.avg_combo, 0) ) + 'x';
+
+                let lastday_avg_length_num = floor(daily.avg_length - lastday_stats.avg_length, 0);
+                let lastday_avg_length = sign( lastday_avg_length_num, true ) + format_seconds( lastday_avg_length_num );
+
+                let lastday_max_fce = sign( floor(daily.max_fcp - lastday_stats.max_fcp, 3) );
+                let lastday_max_pp = sign( floor(daily.max_pp - lastday_stats.max_pp, 0) ) + ' pp';
+                let lastday_max_combo = sign( daily.max_combo - lastday_stats.max_combo ) + 'x';
+
+                let lastday_max_length_num = daily.max_length - lastday_stats.max_length;
+                let lastday_max_length = sign( lastday_max_length_num, true ) + '' + format_seconds( lastday_max_length_num );
+
+                let lastday_max_stars = sign( floor(daily.max_stars - lastday_stats.max_stars, 2) ) + ' ★';
+                let lastday_global_rank = sign( -(daily.profile_last_update.rank - lastday_stats.profile_last_update.rank) );
+                let lastday_country_rank = sign( -(daily.profile_last_update.country_rank - lastday_stats.profile_last_update.country_rank) );
+                let lastday_profile_pp = sign( floor(daily.profile_last_update.pp - lastday_stats.profile_last_update.pp, 0) ) + ' pp';
+                let lastday_profile_accuracy = sign( floor(daily.profile_last_update.accuracy - lastday_stats.profile_last_update.accuracy, 2) ) + '%';
+                let lastday_profile_hits = sign( daily.profile_last_update.hits - lastday_stats.profile_last_update.hits );
+                let lastday_profile_playcount = sign( daily.profile_last_update.playcount - lastday_stats.profile_last_update.playcount );
+                let lastday_profile_playtime = sign( daily_playtime, true) + format_date_2(daily_playtime);
+                let lastday_fce_per_playtime = sign( floor(daily.fcp_per_playtime - lastday_stats.fcp_per_playtime, 3) );
+                let lastday_fce_per_playcount = sign( floor(daily.fcp_per_playcount - lastday_stats.fcp_per_playcount, 3) );
+
+                $('.daily').append(`<div class="lastday_stats">
+                        <div class="lastday_title"><B>Lastday compare</B></div>
+                        <hr>
+                        <div class="lastday_efficiency">${lastday_efficiency}</div>
+                        <div class="lastday_total_pp">${lastday_total_pp}</div>
+                        <div class="lastday_avg_pp">${lastday_avg_pp}</div>
+                        <div class="lastday_fc_count">${lastday_fc_count}</div>
+                        <div class="lastday_avg_stars">${lastday_avg_stars}</div>
+                        <div class="lastday_avg_accuracy">${lastday_avg_accuracy}</div>
+                        <div class="lastday_avg_combo">${lastday_avg_combo}</div>
+                        <div class="lastday_avg_length">${lastday_avg_length}</div>
+                        <div class="lastday_max_fce">${lastday_max_fce}</div>
+                        <div class="lastday_max_pp">${lastday_max_pp}</div>
+                        <div class="lastday_max_combo">${lastday_max_combo}</div>
+                        <div class="lastday_max_length">${lastday_max_length}</div>
+                        <div class="lastday_max_stars">${lastday_max_stars}</div>
+                        <div class="lastday_global_rank">${lastday_global_rank}</div>
+                        <div class="lastday_country_rank">${lastday_country_rank}</div>
+                        <div class="lastday_profile_pp">${lastday_profile_pp}</div>
+                        <div class="lastday_profile_accuracy">${lastday_profile_accuracy}</div>
+                        <div class="lastday_profile_hits">${lastday_profile_hits}</div>
+                        <div class="lastday_profile_playcount">${lastday_profile_playcount}</div>
+                        <div class="lastday_profile_playtime">${lastday_profile_playtime}</div>
+                        <div class="lastday_fce_per_playtime">${lastday_fce_per_playtime}</div>
+                        <div class="lastday_fce_per_playcount">${lastday_fce_per_playcount}</div>
+                    </div>`);
+            }
             $('.daily').append(`<div class="save_stats"><img id="save stats" src="/save_screen.png" onclick="save_screen()"></div>`);
             $('.daily').append(`</div>`);
 
@@ -163,14 +193,14 @@
                     <div class="score_title"><a href=${score.beatmap_url}>${score.beatmap_title}</a></div>
                     <hr>
                     <div class="score_stats">
-                        <div class="score_beatmap_status"><b>Status:</b> ${score.beatmap_status}</div>
-                        <div class="score_efficiency"><b>Efficiency:</b> ${(score.fc_efficiency).toFixed(2)}</div>
-                        <div class="score_mods"><b>Mods:</b> ${score.mods.join('+')}</div>
-                        <div class="score_mods_bonus"><b>Bonus mods:</b> ${(1 + score.mods_bonus).toFixed(2)}</div>
-                        <div class="beatmap_length"><b>PP: </b> ${score.pp}</div>
+                        <div class="score_beatmap_status"><b>Status:</b> ${ score.beatmap_status }</div>
+                        <div class="score_efficiency"><b>Efficiency:</b> ${ floor(score.fc_efficiency, 3) }</div>
+                        <div class="score_mods"><b>Mods:</b> ${ score.mods.join('+') }</div>
+                        <div class="score_mods_bonus"><b>Bonus mods:</b> ${ floor(score.mods_bonus, 3) }</div>
+                        <div class="beatmap_length"><b>PP: </b> ${ floor(score.pp, 0) }</div>
                         <div class="score_combo"><b>Combo:</b> ${score.combo}/${score.max_combo}x</div>
-                        <div class="score_accuracy"><b>Accuracy:</b> ${(score.accuracy*100).toFixed(2)}%</div>
-                        <div class="beatmap_stars"><b>Stars:</b> ${(score.stars).toFixed(2)}★</div>
+                        <div class="score_accuracy"><b>Accuracy:</b> ${ floor(score.accuracy*100, 2) }%</div>
+                        <div class="beatmap_stars"><b>Stars:</b> ${ floor(score.stars, 2) }★</div>
                         <div class="beatmap_length"><b>Length:</b> ${format_seconds(score.beatmap_length)}</div>
                     </div>
                 </div>  
@@ -190,9 +220,9 @@
     }
 
     function format_seconds(seconds) {
-        var minutes = Math.floor(seconds / 60);
-        var secondsRemainder = Math.abs(seconds % 60);
-        return minutes + ":" + (secondsRemainder < 10 ? "0" : "") + secondsRemainder;
+        var minutes = Math.trunc( seconds / 60 );
+        var secondsRemainder = Math.trunc(seconds % 60);
+        return minutes.toFixed(0) + ":" +  ((Math.abs(secondsRemainder)) < 10 ? "0" : "") + (Math.abs(secondsRemainder).toFixed(0));
     }
 
     function format_date(date_number){
@@ -235,7 +265,7 @@
         }
     }
 
-    function make_sign(num, only_sign = false){
+    function sign(num, only_sign = false){
         if (only_sign) {
             if (Number(num)>0) return '+';
             return '';
@@ -275,6 +305,12 @@
             link.delete;
         });
         $('.save_stats').show();
+    }
+
+    const floor = (val, digits=2)=>{
+        let digits_zeros = 10 ** digits;
+        let digits_point = 0.1 ** digits;
+        return ( Math.floor (Number(val) * digits_zeros) * digits_point).toFixed(digits);
     }
 
     </script>

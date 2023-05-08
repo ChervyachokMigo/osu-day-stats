@@ -1,7 +1,10 @@
 //## CONSTANTES ##//////////////////////////
 
+//имя игрока, пустая строка - будет использован osu login
+var osu_username = '';
+
 //Режим игры
-const score_mode = 'osu';
+const game_mode = 'osu';
 
 //сколько процентов от максимального комбо скор считается за FC
 const combo_is_fc = 0.98; //%
@@ -30,6 +33,7 @@ const hardrock_bonus = 0.12;
 const hidden_bonus = 0.06;
 const easy_bonus = -0.12;
 const spinout_bonus = -0.03;
+const nofail_bonus = -0.05;
 
 
 ///##[CODE]##////////////////////////////////
@@ -37,8 +41,6 @@ const spinout_bonus = -0.03;
 const fs = require('fs');
 const path = require('path');
 const { v2, auth } = require('osu-api-extended');
-
-const { ModsIntToText } = require('./mods.js');
 
 const express = require('express');
 const app = express();
@@ -52,6 +54,10 @@ const webserver_dir = 'web';
 
 const osu_login = process.env.osu_login;
 const osu_password = process.env.osu_password;
+
+if (osu_username === '') {
+    osu_username = osu_login;
+}
 
 const default_stats = {
     fc_efficiency: 0,
@@ -146,11 +152,14 @@ const check_login = async()=>{
     //access_token
     //expires_in
     try{
-        console.log('try login')
-        var token_info = await auth.login_lazer(osu_login, osu_password);
+        console.log('try login');
+
+        var token_info =  await auth.login_lazer(osu_login, osu_password);
+    
         if (token_info && token_info.access_token === undefined){
             throw new Error('Login failed. Recheck your credentials');
         }
+
         console.log('you are logged in.');
         return true;
     } catch (e){
@@ -163,20 +172,30 @@ const get_user_id = async () => {
     try {
         console.log('reading user id');
         const user_id = fs.readFileSync( path.join(__dirname, 'user_id') );
-        console.log('user id: ' + user_id);
+        console.log('founded user id: ' + user_id);
         return Number(user_id);
     } catch (e){
         if (e.code === 'ENOENT') {
             try {
-                console.log('user_id', 'not found', 'get it from bancho');
-                const user_info =  await v2.user.me.details('osu');
+                console.log('user_id', 'not found', 'getting it from bancho..');
+                
+                const user_info = (osu_username === '')?
+                    await v2.user.me.details(game_mode):
+                    await v2.user.details(osu_username, game_mode, 'username');
+
+                if (user_info.error === null) {
+                    throw new Error ('User '+ osu_username + ' not found.');
+                }
+
                 try{
                     console.log('saving user id');
                     fs.writeFileSync( path.join(__dirname, 'user_id' ), user_info.id.toString() );
                 } catch (e2){
                     throw new Error(e2);
                 }
-                console.log('user id: ' + user_info.id);
+
+                console.log('used user id: ' + user_info.id);
+
                 return user_info.id;
             } catch (e1){
                 throw new Error(e1);
@@ -187,14 +206,36 @@ const get_user_id = async () => {
     }
 }
 
-const get_user_info = async () => {
+const get_user_info = async (user_id) => {
     try {
-        console.log('reading user profile from bancho')
-        const user_info =  await v2.user.me.details('osu');
+        console.log('reading user profile from bancho..');
+
+        const user_info = (osu_username === '')?
+            await v2.user.me.details(game_mode):
+            await v2.user.details(user_id, game_mode, 'id');
+
+        if (user_info.error === null) {
+            throw new Error ('User '+ osu_username + ' not found.');
+        }
+
+        let rank = user_info.statistics.global_rank;
+        let country_rank = user_info.statistics.country_rank;
+        let pp  = user_info.statistics.pp;
+
+        if (rank === null){
+            rank = 0;
+        }
+        if (country_rank === null){
+            country_rank = 0;
+        }
+        if (pp === null){
+            pp = 0;
+        }
+
         return {
-            rank: user_info.statistics.global_rank, 
-            country_rank: user_info.statistics.country_rank,
-            pp: user_info.statistics.pp,
+            rank,
+            country_rank,
+            pp,
             accuracy: user_info.statistics.hit_accuracy,
             hits: user_info.statistics.total_hits,
             playcount: user_info.statistics.play_count,
@@ -214,7 +255,7 @@ const get_beatmap_info = async (beatmap_id) => {
     } catch (e) {
         if (e.code === 'ENOENT') {
             try{
-                console.log('beatmap not found', beatmap_id, 'get it from bancho');
+                console.log('beatmap not found', beatmap_id, 'geting it from bancho..');
                 const beatmap_info = await v2.beatmap.diff(beatmap_id);
                 console.log('saving beatmap');
                 fs.writeFileSync(path.join(__dirname, 'beatmaps', beatmap_id.toString() ), JSON.stringify(beatmap_info));
@@ -256,36 +297,44 @@ const save_score_info = async (score) => {
     let combo_allowed = beatmap_max_combo * combo_is_fc;
 
     if (combo >= combo_allowed){
-        let fc_efficiency = accuracy * (combo / beatmap_max_combo) *
+        let mods_bonus = 1;
+
+        if (score.mods.length > 0){
+            for (let mod of score.mods){
+                switch (mod) {
+                    case 'FL':
+                        mods_bonus += flashhlight_bonus;
+                        break;
+                    case 'DT':
+                        mods_bonus += double_time_bonus;
+                        break;
+                    case 'HR':
+                        mods_bonus += hardrock_bonus;
+                        break;  
+                    case 'HD':
+                        mods_bonus += hidden_bonus;
+                        break;
+                    case 'EZ':
+                        mods_bonus += easy_bonus;
+                        break;
+                    case 'NF':
+                        mods_bonus += nofail_bonus;
+                        break;
+                    case 'SO':
+                        mods_bonus += spinout_bonus;
+                        break;
+                }
+            }
+        } else {
+            score.mods.push('NM');
+        }
+
+        let fc_efficiency = mods_bonus * accuracy * (combo / beatmap_max_combo) *
             ( ((stars * ((beatmap_length / 120) * length_significance) + 
                 stars * (1-length_significance))) / 
                     efficiency_multiplier );
-        
-        let mods_bonus = 0;
-        for (let mod of score.mods){
-            switch (mod) {
-                case 'Flashlight':
-                    mods_bonus += flashhlight_bonus;
-                    break;
-                case 'DoubleTime':
-                    mods_bonus += double_time_bonus;
-                    break;
-                case 'HardRock':
-                    mods_bonus += hardrock_bonus;
-                    break;  
-                case 'Hidden':
-                    mods_bonus += hidden_bonus;
-                    break;
-                case 'Easy':
-                    mods_bonus += easy_bonus;
-                    break;
-                case 'SpunOut':
-                    mods_bonus += spinout_bonus;
-                    break;
-            }
-        }
 
-        if (pp === 0 || pp === null ){
+        if ( pp === null ){
             pp = 0;
         }
 
@@ -304,7 +353,7 @@ const save_score_info = async (score) => {
             fc_efficiency,
             pp,
             beatmap_status: beatmap_info.status,
-            mods: ModsIntToText(score.mode_int),
+            mods: score.mods,
             mods_bonus
         }
 
@@ -378,8 +427,7 @@ const calculate_stats = (old_stats, date) => {
             }
             scores_info.push(score_info);
             
-            let fce = score_info.fc_efficiency * (1 + score_info.mods_bonus);
-            fc_efficiency.push(fce);
+            fc_efficiency.push(score_info.fc_efficiency);
 
             new_stats.avg_stars += score_info.stars;
             new_stats.avg_combo += score_info.combo;
@@ -412,15 +460,6 @@ const calculate_stats = (old_stats, date) => {
         new_stats.avg_length /= scores_length;
         new_stats.avg_accuracy /= scores_length;
 
-        new_stats.max_fcp = floor(new_stats.max_fcp);
-        new_stats.fc_efficiency = floor(new_stats.fc_efficiency);
-        new_stats.avg_stars = floor(new_stats.avg_stars);
-        new_stats.avg_combo = floor(new_stats.avg_combo);
-        new_stats.avg_length = floor(new_stats.avg_length,0);
-        new_stats.avg_accuracy = floor(new_stats.avg_accuracy);
-        new_stats.total_pp = floor(new_stats.total_pp);
-        new_stats.avg_pp = floor(new_stats.avg_pp);
-
         return { stats: new_stats, scores: scores_info};
 
     }  else {
@@ -438,13 +477,13 @@ const get_daily_stats = async () => {
     const today = new Date().toJSON().slice(0, 10);
     var daily_stats = get_user_stats(today);  
 
-    console.log('request bancho for', 'recent', 'scores of user', user_id);
-    console.log('selected mode', score_mode);
+    console.log('requesting bancho for', 'recent', 'scores of user', user_id);
+    console.log('selected mode', game_mode);
 
-    daily_stats.profile_last_update = await get_user_info();
+    daily_stats.profile_last_update = await get_user_info(user_id);
 
     try{
-        var new_scores = await v2.user.scores.category(user_id, 'recent', {mode: score_mode, limit: 100});
+        var new_scores = await v2.user.scores.category(user_id, 'recent', {mode: game_mode, limit: 100});
 
         for (let new_score of new_scores){ 
             if (today !== new Date(new_score.created_at).toJSON().slice(0, 10)) continue;
