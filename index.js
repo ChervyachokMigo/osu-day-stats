@@ -425,6 +425,7 @@ const calculate_stats = (old_stats, date) => {
                 null_pp_count++;
                 score_info.pp = 0;
             }
+            
             scores_info.push(score_info);
             
             fc_efficiency.push(score_info.fc_efficiency);
@@ -453,8 +454,13 @@ const calculate_stats = (old_stats, date) => {
             }
             new_stats.fc_efficiency += fc_efficiency[i] * weight;
         }
-
-        new_stats.avg_pp /= (scores_length - null_pp_count);
+        
+        let length_with_null_pp = scores_length - null_pp_count;
+        if (length_with_null_pp === 0) {
+            new_stats.avg_pp = 0;
+        } else {
+            new_stats.avg_pp /= length_with_null_pp;
+        }
         new_stats.avg_combo /= scores_length;
         new_stats.avg_stars /= scores_length;
         new_stats.avg_length /= scores_length;
