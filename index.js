@@ -132,7 +132,7 @@ const check_dir = (...dirname) => {
 
 check_dir('database', 'beatmaps', game_mode);
 check_dir('database', 'scores', game_mode);
-check_dir('database', 'stats',  osu_username, game_mode);
+check_dir('database', 'stats',  osu_username.toLowerCase(), game_mode);
 
 
 const promise_timeout = async (promise, timeout) => {
@@ -179,7 +179,7 @@ const check_login = async()=>{
 const get_user_id = async () => {
     try {
         console.log('reading user id');
-        const user_id = fs.readFileSync( path.join(__dirname, 'database', 'stats',  osu_username, 'user_id') );
+        const user_id = fs.readFileSync( path.join(__dirname, 'database', 'stats',  osu_username.toLowerCase(), 'user_id') );
         console.log('founded user id: ' + user_id);
         return Number(user_id);
     } catch (e){
@@ -197,7 +197,7 @@ const get_user_id = async () => {
 
                 try{
                     console.log('saving user id');
-                    fs.writeFileSync( path.join(__dirname, 'database', 'stats',  osu_username, 'user_id' ), user_info.id.toString() );
+                    fs.writeFileSync( path.join(__dirname, 'database', 'stats',  osu_username.toLowerCase(), 'user_id' ), user_info.id.toString() );
                 } catch (e2){
                     throw new Error(e2);
                 }
@@ -282,7 +282,7 @@ const get_user_stats = (date) => {
     var stats = Object.assign({}, default_stats);
     try {
         console.log('reading stats for', date);
-        var stats_json = fs.readFileSync(path.join(__dirname, 'database', 'stats',  osu_username, game_mode, date.toString() ));
+        var stats_json = fs.readFileSync(path.join(__dirname, 'database', 'stats',  osu_username.toLowerCase(), game_mode, date.toString() ));
         stats = JSON.parse(stats_json);
     } catch (e){
         console.log('nothing to read', 'set defaults state');
@@ -517,18 +517,18 @@ const get_daily_stats = async () => {
 
     try{
         console.log('saving daily stats for', today);
-        fs.writeFileSync(path.join(__dirname, 'database', 'stats',  osu_username, game_mode, today), JSON.stringify(stats_and_scores.stats));
+        fs.writeFileSync(path.join(__dirname, 'database', 'stats',  osu_username.toLowerCase(), game_mode, today), JSON.stringify(stats_and_scores.stats));
     } catch (e){
         console.error(e);
     }
 
     try{
-        let stats_folder = fs.readdirSync(path.join(__dirname, 'database', 'stats',  osu_username, game_mode));
+        let stats_folder = fs.readdirSync(path.join(__dirname, 'database', 'stats',  osu_username.toLowerCase(), game_mode));
         if (stats_folder.length > 1){
             const lastday = stats_folder[stats_folder.length-2];
             if (lastday !== today){
                 console.log('reading stats for', lastday);
-                var lastday_stats = fs.readFileSync(path.join(__dirname, 'database', 'stats',  osu_username, game_mode, lastday.toString() ));
+                var lastday_stats = fs.readFileSync(path.join(__dirname, 'database', 'stats',  osu_username.toLowerCase(), game_mode, lastday.toString() ));
                 stats_and_scores.stats.lastday_stats = JSON.parse(lastday_stats);
 
                 let current_playcount = stats_and_scores.stats.profile_last_update.playcount - stats_and_scores.stats.lastday_stats.profile_last_update.playcount;
@@ -557,7 +557,7 @@ const get_daily_stats = async () => {
 
     try{
         console.log('saving daily stats for', today);
-        fs.writeFileSync(path.join(__dirname, 'database', 'stats',  osu_username, game_mode, today), JSON.stringify(stats_and_scores.stats));
+        fs.writeFileSync(path.join(__dirname, 'database', 'stats',  osu_username.toLowerCase(), game_mode, today), JSON.stringify(stats_and_scores.stats));
     } catch (e){
         console.error(e);
     }
@@ -630,7 +630,7 @@ const main = (async () => {
             return;
         }
         try {
-            let fd = fs.openSync(path.join(__dirname, 'database', 'stats',  osu_username, game_mode, req.query.day ));
+            let fd = fs.openSync(path.join(__dirname, 'database', 'stats',  osu_username.toLowerCase(), game_mode, req.query.day ));
             fs.closeSync(fd);
             var stats = get_user_stats(req.query.day)
         res.send(JSON.stringify(stats));
