@@ -8,7 +8,7 @@ var osu_username = '';
 //taiko
 //fruits
 //mania
-const game_mode = 'osu';
+const game_mode = 'taiko';
 
 //сколько процентов от максимального комбо скор считается за FC
 const combo_is_fc = 0.98; //%
