@@ -9,15 +9,23 @@
     <script>
 
     $(document).ready(function(){
-        $.post('/get_daily_stats', (stats_json)=> {
-            stats_and_scores = JSON.parse(stats_json);
+        $.post('/get_daily_stats', (data_json)=> {
+            data = JSON.parse(data_json);
+            username = data.username;
+            gamemode = data.gamemode;
+            stats_and_scores = data.stats;
+
             stats = stats_and_scores.stats;
             scores_info = stats_and_scores.scores;
 
             scores_ids = stats.scores_ids;
+
             daily = stats;
+
             lastday_stats = stats.lastday_stats?stats.lastday_stats:undefined;
+
             daily_count = stats.scores_ids.length;
+
             lastday_count = lastday_stats?lastday_stats.scores_ids.length:0;
 
             daily_playtime = Math.abs(daily.profile_last_update.playtime - (lastday_stats !== undefined?lastday_stats.profile_last_update.playtime:daily.profile_last_update.playtime));
@@ -27,6 +35,8 @@
                 <div class="daily_headers">
                     <div class="headers_title"><B>Title</B></div>
                     <hr>
+                    <div class="headers_username"><B>Username</B></div>
+                    <div class="headers_gamemode"><B>Gamemode</B></div>
                     <div class="headers_efficiency"><B>Efficiency</B></div>
                     <div class="headers_total_pp"><B>Total PP</B></div>
                     <div class="headers_avg_pp"><B>PP per FC</B></div>
@@ -53,6 +63,8 @@
             $('.daily').append(`<div class="today_daily">
                     <div class="daily_title"><B>Today</B></div>
                     <hr>
+                    <div class="daily_username"><B>${username}</B></div>
+                    <div class="daily_gamemode"><B>${gamemode}</B></div>
                     <div class="daily_efficiency">${floor(daily.fc_efficiency, 3)}</div>
                     <div class="daily_total_pp">${floor(daily.total_pp, 0)} pp</div>
                     <div class="daily_avg_pp">${floor(daily.avg_pp, 0)} pp</div>
@@ -109,6 +121,8 @@
                 $('.daily').append(`<div class="lastday_stats">
                         <div class="lastday_title"><B>Lastday compare</B></div>
                         <hr>
+                        <div class="lastday_username">-</div>
+                        <div class="lastday_gamemode">-</div>
                         <div class="lastday_efficiency">${lastday_efficiency}</div>
                         <div class="lastday_total_pp">${lastday_total_pp}</div>
                         <div class="lastday_avg_pp">${lastday_avg_pp}</div>
