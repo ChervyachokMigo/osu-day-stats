@@ -1,12 +1,5 @@
 //## CONSTANTES ##//////////////////////////
 
-//Режим игры
-//osu
-//taiko
-//fruits
-//mania
-const game_mode = 'osu';
-
 //сколько процентов от максимального комбо скор считается за FC
 const combo_is_fc = 0.98; //%
 
@@ -61,7 +54,6 @@ const { v2, auth } = require('osu-api-extended');
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
-const { argv0, argv } = require('process');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -72,8 +64,6 @@ const bancho_request_timeout = 30000;
 
 const osu_client_id = Number(process.env.osu_client_id);
 const osu_app_key = process.env.osu_app_key;
-
-console.log('game mode:' + game_mode);
 
 const default_stats = {
     fc_efficiency: 0,
@@ -120,13 +110,11 @@ const default_settings = {
     },
     autoupdate: 0,
     osu_username: '',
-    osu_userid: 0
+    osu_userid: 0,
+    game_mode: 'osu'
 }
 
 var settings;
-
-check_dir('database', 'beatmaps', game_mode);
-check_dir('database', 'scores', game_mode);
 
 const path_settings = path.join(__dirname, 'database', 'settings.json');
 
@@ -180,12 +168,15 @@ const check_userid = async () => {
 
         console.log('getting user_info from bancho..');
 
-        const user_info = await promise_timeout(v2.user.details( settings.osu_username, game_mode, 'username'));
+        const user_info = await promise_timeout(v2.user.details( settings.osu_username, settings.game_mode, 'username'));
     
         if (user_info.error === null) {
             throw new Error ('User not found.');
         }
     
+        console.log('Set Username: ', user_info.username);
+        console.log('Set User ID: ', user_info.id);
+
         settings.osu_username = user_info.username;
         settings.osu_userid = user_info.id;
     
@@ -197,7 +188,7 @@ const check_userid = async () => {
 const get_user_info = async () => {
     console.log('reading user profile from bancho..');
 
-    const user_info = await promise_timeout(v2.user.details(settings.osu_userid, game_mode, 'id'));
+    const user_info = await promise_timeout(v2.user.details(settings.osu_userid, settings.game_mode, 'id'));
 
     if (user_info.error === null) {
         throw new Error ('User '+  settings.osu_username + ' not found.');
@@ -230,7 +221,7 @@ const get_user_info = async () => {
 
 const get_beatmap_info = async (beatmap_id) => {
     console.log('getting beatmap info by id: ' + beatmap_id);
-    const path_beatmap = path.join(__dirname, 'database', 'beatmaps', game_mode, beatmap_id.toString() );
+    const path_beatmap = path.join(__dirname, 'database', 'beatmaps', settings.game_mode, beatmap_id.toString() );
     var beatmap_info = loadFileSync ( path_beatmap, true );
 
     if (beatmap_info == null){
@@ -247,7 +238,7 @@ const get_beatmap_info = async (beatmap_id) => {
 
 const get_user_stats = (date) => {
     console.log('getting user stats by date: ' + date);
-    const path_stats_date = path.join(__dirname, 'database', 'stats',   settings.osu_username.toLowerCase(), game_mode, date.toString() );
+    const path_stats_date = path.join(__dirname, 'database', 'stats',   settings.osu_username.toLowerCase(), settings.game_mode, date.toString() );
     var stats = loadFileSync( path_stats_date, true );
     if (stats == null) {
         console.log('nothing to read, set defaults state');
@@ -257,7 +248,7 @@ const get_user_stats = (date) => {
 }
 
 const save_score_info = async (score) => {
-    const path_score = path.join(__dirname, 'database', 'scores', game_mode, score.id.toString() )
+    const path_score = path.join(__dirname, 'database', 'scores', settings.game_mode, score.id.toString() )
     const beatmap_info = await get_beatmap_info(score.beatmap.id);
 
     console.log('check score for fc ', score.id);
@@ -346,7 +337,7 @@ const save_score_info = async (score) => {
 }
 
 const read_score = (score_id) => {
-    const path_score = path.join(__dirname, 'database', 'scores', game_mode, score_id.toString() );
+    const path_score = path.join(__dirname, 'database', 'scores', settings.game_mode, score_id.toString() );
     return loadFileSync(path_score, true);
 }
 
@@ -443,18 +434,18 @@ const get_daily_stats = async () => {
 
     const today = new Date().toJSON().slice(0, 10);
 
-    const path_stats_today = path.join( __dirname, 'database', 'stats',   settings.osu_username.toLowerCase(), game_mode, today );
+    const path_stats_today = path.join( __dirname, 'database', 'stats',   settings.osu_username.toLowerCase(), settings.game_mode, today );
 
     console.log('getting daily stats for user', settings.osu_userid);
     var daily_stats = get_user_stats(today);  
 
     console.log('requesting bancho for recent scores of user', settings.osu_userid);
-    console.log('selected mode', game_mode);
+    console.log('selected mode', settings.game_mode);
 
     daily_stats.profile_last_update = await get_user_info();
 
     console.log('getting scores from bancho..' );
-    var new_scores = await promise_timeout(v2.user.scores.category(settings.osu_userid, 'recent', {mode: game_mode, limit: 100})).catch( err => {
+    var new_scores = await promise_timeout(v2.user.scores.category(settings.osu_userid, 'recent', {mode: settings.game_mode, limit: 100})).catch( err => {
         throw new Error(err);
     });
 
@@ -479,13 +470,13 @@ const get_daily_stats = async () => {
     console.log('saving daily stats for', today);
     saveFileSync(path_stats_today, stats_and_scores.stats, true);    
 
-    const path_stats = path.join(__dirname, 'database', 'stats',   settings.osu_username.toLowerCase(), game_mode);
+    const path_stats = path.join(__dirname, 'database', 'stats',   settings.osu_username.toLowerCase(), settings.game_mode);
     let stats_folder = readdir( path_stats );
 
     if (stats_folder.length > 1){
 
         const lastday = stats_folder[stats_folder.length-2];
-        const path_stats_lastday = path.join(__dirname, 'database', 'stats',   settings.osu_username.toLowerCase(), game_mode, lastday.toString() );
+        const path_stats_lastday = path.join(__dirname, 'database', 'stats',   settings.osu_username.toLowerCase(), settings.game_mode, lastday.toString() );
 
         if (lastday !== today){
 
@@ -514,9 +505,17 @@ const get_daily_stats = async () => {
         console.log('stats are only one day')
     }
 
-
-
     return stats_and_scores;
+}
+
+const check_setting = (data, value) => {
+    console.log('check setting', value);
+    if (!data[value]){
+        data[value] = default_settings[value];
+        console.log('value not found. set to default');
+        return true;
+    }
+    return false;
 }
 
 const get_settings = () => {
@@ -524,6 +523,18 @@ const get_settings = () => {
     var data = loadFileSync( path_settings , true );
     if (data == null) {
         data = Object.assign ({}, default_settings);
+        save_settings(data);
+    }
+    if (check_setting(data, 'osu_username') ){
+        save_settings(data);
+    }
+     if (check_setting(data, 'osu_userid') ){
+        save_settings(data);
+     }
+     if (check_setting(data, 'game_mode') ){
+        save_settings(data);
+     }
+     if (check_setting(data, 'autoupdate') ) {
         save_settings(data);
     }
     return data;
@@ -537,12 +548,44 @@ const save_settings = (data) => {
 const main = (async () => {
     console.log('application started');
 
+    const is_change_username = process.argv.slice(2).findIndex( val => val === 'change_username')  > -1;
+    const is_change_gamemode = process.argv.slice(2).findIndex( val => val === 'change_gamemode')  > -1;
+
     settings = get_settings();
 
-    if (process.argv.slice(2).findIndex( val => val === 'change_username')  > -1){
+    if (is_change_username){
         settings.osu_username = '';
         settings.osu_userid = 0;
     }
+
+    if (is_change_gamemode) {
+        console.log('Type number of gamemode:')
+        console.log('0 - osu\n1 - taiko\n2 - catch the beat\n3 - mania');
+        settings.game_mode = Number(await prompt('Select gamemode. Enter number: '));
+
+        if (isNaN(settings.game_mode) || settings.game_mode < 0 || settings.game_mode > 3){
+            console.log('Invalid gamemode value: ', settings.game_mode);
+            return;
+        }
+
+        switch (settings.game_mode){
+            case 0: settings.game_mode = 'osu'; break;
+            case 1: settings.game_mode = 'taiko'; break;
+            case 2: settings.game_mode = 'fruits'; break;
+            case 3: settings.game_mode = 'mania'; break;
+            default: //nothing
+        }
+
+        save_settings(settings);
+
+        console.log('Selection of gamemode complete.\n', 'You choose the', settings.game_mode, 'gamemode');
+
+        return;
+    }
+
+    check_dir('database', 'beatmaps', settings.game_mode);
+    check_dir('database', 'scores', settings.game_mode);
+    check_dir('database', 'stats',  settings.osu_username.toString(), settings.game_mode);
 
     if ( ! check_credentials()){
         throw new Error('"osu_client_id" or "osu_app_key" are not in environment. Add from "computer settings > environment variables" and relogin winddows.');
@@ -556,7 +599,11 @@ const main = (async () => {
 
     await check_userid();
 
-    check_dir('database', 'stats',  settings.osu_username.toString(), game_mode);
+    if (is_change_username){
+        return;
+    }
+
+
 
     
 
@@ -581,7 +628,7 @@ const main = (async () => {
     PathListener(app, '/save_screen.png', 'save_screen.png');
     
     app.get('/score', (req, res) => {
-        const path_stats_query_day = path.join(__dirname, 'database', 'stats',  (settings.osu_username).toLowerCase(), game_mode, req.query.day );
+        const path_stats_query_day = path.join(__dirname, 'database', 'stats',  (settings.osu_username).toLowerCase(), settings.game_mode, req.query.day );
 
         if (req.query === undefined || req.query.day === undefined){
             res.send('error');
@@ -602,7 +649,7 @@ const main = (async () => {
         var daily_stats = await get_daily_stats();
         res.send(JSON.stringify({
             username: settings.osu_username,
-            gamemode: game_mode,
+            gamemode: settings.game_mode,
             stats: daily_stats
         }));
     });

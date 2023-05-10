@@ -46,6 +46,7 @@ module.exports = {
 
     saveFileSync: (filepath, data, isjson = false) => {
         try {
+            module.exports.check_dir(path.dirname(path.relative( __dirname, filepath)));
             console.log ('saving file:', path.relative( __dirname, filepath) );
             if (isjson){
                 fs.writeFileSync( filepath, JSON.stringify(data) );
