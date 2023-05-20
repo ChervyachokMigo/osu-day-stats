@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "change_username": "node index.js change_username"
+    "change_username": "node index.js change_username",
+    "gui": "electron ."
   },
   "keywords": [],
   "author": "",
@@ -14,5 +15,8 @@
     "body-parser": "^1.20.2",
     "express": "^4.18.2",
     "osu-api-extended": "^2.5.30"
+  },
+  "devDependencies": {
+    "electron": "^24.3.0"
   }
 }

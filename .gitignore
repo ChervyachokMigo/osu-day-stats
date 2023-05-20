@@ -1,2 +1,5 @@
+.trash/
 database/
+node_modules/
 settings.json
+test.js

@@ -4,10 +4,10 @@
 const combo_is_fc = 0.98; //%
 
 //Значимость длины карты от 0 до 1 (0 - 100%)
-const length_significance = 0.1;
+const length_significance = 0.000211;
 
 //Визуальный параметр, чем выше тем меньше число эфективности
-const efficiency_multiplier = 5;
+const efficiency_multiplier = 1;
 
 //Коэфициент весов скоров, влияет на суммарный показатель эфективности
 //0.14285714 - считает первые 7 скоров в порядке убывания эфективности
@@ -31,6 +31,8 @@ const nofail_bonus = -0.05;
 
 
 ///##[CODE]##////////////////////////////////
+
+const electron = require('electron');
 
 const { isFileExists, readdir, check_dir, saveFileSync, loadFileSync } = require('./fileActions.js');
 
@@ -144,7 +146,7 @@ const check_login = async()=>{
     //access_token
     //expires_in
     console.log('try login');
-    //osu_login, osu_password
+
     var token_info = await promise_timeout(auth.login(osu_client_id, osu_app_key)).catch(err =>{
         throw new Error(err);
     });
@@ -264,6 +266,15 @@ const save_score_info = async (score) => {
 
     let combo_allowed = beatmap_max_combo * combo_is_fc;
 
+    position = score.position;
+    statistics = score.statistics;
+    ar = score.beatmap.ar;
+    cs = score.beatmap.cs;
+    count_circles = score.beatmap.count_circles;
+    count_sliders = score.beatmap.count_sliders;
+    count_spinners = score.beatmap.count_spinners;
+
+
     if (combo >= combo_allowed){
         let mods_bonus = 1;
 
@@ -297,10 +308,10 @@ const save_score_info = async (score) => {
             score.mods.push('NM');
         }
 
+        let length_value =  1 + Math.log(1 + (beatmap_length * length_significance) );
+
         let fc_efficiency = mods_bonus * accuracy * (combo / beatmap_max_combo) *
-            ( ((stars * ((beatmap_length / 120) * length_significance) + 
-                stars * (1-length_significance))) / 
-                    efficiency_multiplier );
+        ( length_value * stars ) * efficiency_multiplier ;
 
         if ( pp === null ){
             pp = 0;
@@ -322,7 +333,14 @@ const save_score_info = async (score) => {
             pp,
             beatmap_status: beatmap_info.status,
             mods: score.mods,
-            mods_bonus
+            mods_bonus,
+            position,
+            statistics,
+            ar,
+            cs,
+            count_circles,
+            count_sliders,
+            count_spinners,
         }
 
         if ( ! isFileExists(path_score) ){
@@ -604,9 +622,6 @@ const main = (async () => {
     }
 
 
-
-    
-
     app.listen(HTTP_PORT, ()=>{
         console.log(`Scores listening on http://localhost:${HTTP_PORT}`);
     });
@@ -664,5 +679,32 @@ const main = (async () => {
         save_settings(settings);
         res.send ('OK');
     });
+
+    function createWindow() {
+        const win = new electron.BrowserWindow({
+          width: 1280,
+          height: 768,
+          webPreferences: {
+            nodeIntegration: true
+          }
+        });
+        win.loadURL('http://localhost:'+HTTP_PORT+"/")
+      }
+      
+      electron.app.whenReady().then(() => {
+        createWindow();
+      
+        electron.app.on('activate', () => {
+          if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
+          }
+        });
+      });
+      
+      electron.app.on('window-all-closed', () => {
+        if (process.platform !== 'darwin') {
+            electron.app.quit();
+        }
+      });
    
 })();
