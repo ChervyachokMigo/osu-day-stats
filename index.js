@@ -564,6 +564,7 @@ const save_settings = (data) => {
 }
 
 const main = (async () => {
+    process.title = 'osu_daily_stats';
     console.log('application started');
 
     const is_change_username = process.argv.slice(2).findIndex( val => val === 'change_username')  > -1;
@@ -682,8 +683,8 @@ const main = (async () => {
 
     function createWindow() {
         const win = new electron.BrowserWindow({
-          width: 1280,
-          height: 768,
+          width: 700,
+          height: 800,
           webPreferences: {
             nodeIntegration: true
           }
